@@ -9,6 +9,7 @@ import pysrt as srt
 import tkinter as tk
 import tkinter.filedialog
 import pygame as pyg
+import time
 import math
 win=tk.Tk()
 win.geometry("500x300")
@@ -16,7 +17,6 @@ win.title("FollowME")
 
 page,pagesize=0,6
 totpage,totfield=0,0
-datas=list() # 記錄字幕文字
 
 # Initialze Pygame Mixer
 pyg.mixer.init()
@@ -24,26 +24,18 @@ pyg.mixer.init()
 # Add Srt file Function
 def add_srt():
     #pass
-    global datasize,totpage,totfield,song
+    global subs,datasize,totpage,totfield,song
     file = tkinter.filedialog.askopenfilename(initialdir=".",title="選擇檔案",filetypes=(("Subtitle Files","*.srt"),))
     song = file.replace(".srt",".mp3") # 為了找同檔名的mp3檔
     subs = srt.open(file, encoding="utf-8")
-    datas.clear()
-    for sub in subs:
-        datas.append(sub.text)
-        #print(sub.index, END=",")
-        #print(sub.text)
 
     datasize=len(subs) #資料筆數
     totpage=math.ceil(datasize/pagesize) #總頁數
     totfield=pagesize*totpage #總欄位數
 
-    # 剩下的格數用空白取代，以免殘留上一頁的文字
-    for i in range(datasize,totfield):
-        datas.append("")
     #print("轉換完畢!") 
     First()
-    
+    disp_play()
 
 def First():  # 首頁
     global page
@@ -74,9 +66,8 @@ def Bottom(): #最後頁
     pagevar.set(page+1)
     disp_data() 
 
-global firstPlay,inited
+global firstPlay
 firstPlay = 0
-inited = 0
     
 # Play and pause selected srt's mp3
 def play():
@@ -94,45 +85,29 @@ def play():
         pyg.mixer.music.pause()
     firstPlay+=1
         
-def disp_data():      
-    global inited
-    if inited == 0:
-        disp_play()
-        inited = 1
-        
+def disp_data():
+    global subs      
     sep1=tk.Label(frameShow, text="\t",fg="white",width="20",font=("Calibri",10))  
     label1 = tk.Label(frameShow, text="subtitle",fg="white",bg="gray",width=40,font=("Calibri",12))
     # label2 = tk.Label(frameShow, text="英",fg="white",bg="gray",width=3,font=("新細明體",10))
-    # label3 = tk.Label(frameShow, text='{:30}'.format(datas[0]),width=30,font=("Calibri",10))
     # chiSub = tk.StringVar()
     # entryChi = tk.Entry(frameShow, textvariable=chiSub)
     sep1.grid(row=0,column=0,sticky="w")  # 加第一列空白，讓版面美觀些   
     label1.grid(row=1,column=0,sticky="w",padx=20)
     # label2.grid(row=2,column=1)
-    # label3.grid(row=2,column=2)
     # entryChi.grid(row=1,column=2)
     
     row=2
     start=page * pagesize
     for i in range(0,totfield):
         if i >= start and i < start + pagesize:
-            labelE = tk.Label(frameShow,text='{}'.format(datas[i]),width=40,font=("Calibri",12),anchor="w")
+            if i<datasize:
+                labelE = tk.Label(frameShow,text='{}'.format(subs[i].text),width=40,font=("Calibri",12),anchor="w")
+            else:
+                labelE = tk.Label(frameShow,text="",width=40,font=("Calibri",12),anchor="w")
             labelE.grid(row=row,column=0,sticky="w",padx=20)
             row+=1
-    # sn=0       
-    # for sub in subs:
-    #     if n >= start and n < start + pagesize:
-    #         #chiSub = tk.StringVar()
-    #         #labelC = tk.Entry(frameShow, textvariable=chiSub) 
-    #         labelE = tk.Label(frameShow,text='{}'.format(sub.text),width=40,font=("Calibri",12),anchor="w")
-    #         labelE.grid(row=row,column=0,sticky="w",padx=20)
-    #         row+=1
-    #     n+=1
 
-        
-    
-    #labeltest = tk.Label(frameShow,text="this is label",fg="red",font=("新細明體",10))   
-    #labeltest.pack() 
 
 def disp_play():
     global btntext
@@ -154,6 +129,20 @@ def disp_play():
     btnPlay4.grid(row=4,column=0,sticky="E")
     btnPlay5.grid(row=5,column=0,sticky="E")
     btnPlay6.grid(row=6,column=0,sticky="E") 
+    # Call the disp_time function to get song length
+    #disp_time()
+
+def disp_time():
+    # Grab Current Song Elapsed Time
+    current_time = pyg.mixer.music.get_pos() / 1000
+
+    # convert to time format
+    converted_current_time = time.strftime('%M:%S', time.gmtime(current_time))
+    
+    # Output time to status bar
+    status_bar.config(text=converted_current_time)
+    # update time
+    status_bar.after(1000,disp_time)
 
 # Create Menu
 filemenu = tk.Menu(win)
@@ -199,6 +188,10 @@ btnFirst.grid(row=0, column=0, padx=5, pady=5)
 btnPrev.grid(row=0, column=1, padx=5, pady=5)
 btnNext.grid(row=0, column=2, padx=5, pady=5)        
 btnBottom.grid(row=0, column=3, padx=5, pady=5)   
+
+# Create Status Bar
+status_bar = tk.Label(win,text='',bd=1,relief="groove",anchor="e")
+status_bar.pack(fill="x", side="bottom", ipady=2)
 
 #First()
 win.mainloop()
