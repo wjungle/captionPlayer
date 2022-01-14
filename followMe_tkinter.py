@@ -10,6 +10,7 @@ import tkinter as tk
 import tkinter.filedialog
 import pygame as pyg
 import time
+import threading
 import math
 win=tk.Tk()
 win.geometry("500x300")
@@ -23,6 +24,7 @@ pyg.mixer.init()
 
 # Add Srt file Function
 def add_srt():
+    global btnPlayAll
     #pass
     global subs,datasize,totpage,totfield,song
     file = tkinter.filedialog.askopenfilename(initialdir=".",title="選擇檔案",filetypes=(("Subtitle Files","*.srt"),))
@@ -34,6 +36,7 @@ def add_srt():
     totfield=pagesize*totpage #總欄位數
 
     #print("轉換完畢!") 
+    btnPlayAll['state'] = tk.NORMAL
     First()
     disp_play()
 
@@ -84,9 +87,24 @@ def play():
         btntext.set("|＞")
         pyg.mixer.music.pause()
     firstPlay+=1
+    
+def stop():
+    pyg.mixer.music.stop()
+
+def play_slice():
+    global song
+    first_start = subs[0].start
+    slice_st=calc_seconds(first_start.minutes,first_start.seconds,first_start.milliseconds)
+    slice_dr=calc_seconds(subs[0].duration.minutes,subs[0].duration.seconds,subs[0].duration.milliseconds)
+    #print(slice_st)
+    #print(slice_dr)
+    pyg.mixer.music.load(song)
+    pyg.mixer.music.play(loops=0)
+    pyg.mixer.music.set_pos(slice_st)
+    t=threading.Timer(slice_dr,stop)
+    t.start()
         
-def disp_data():
-    global subs      
+def disp_hdr():
     sep1=tk.Label(frameShow, text="\t",fg="white",width="20",font=("Calibri",10))  
     label1 = tk.Label(frameShow, text="subtitle",fg="white",bg="gray",width=40,font=("Calibri",12))
     # label2 = tk.Label(frameShow, text="英",fg="white",bg="gray",width=3,font=("新細明體",10))
@@ -96,7 +114,19 @@ def disp_data():
     label1.grid(row=1,column=0,sticky="w",padx=20)
     # label2.grid(row=2,column=1)
     # entryChi.grid(row=1,column=2)
+    disp_one()
+
+def disp_one():
+    global btntext,btnPlayAll
+    btntext = tk.StringVar()
+    sep1=tk.Label(frameShow, text="\t",fg="white",width="20",font=("Calibri",10))
+    btnPlayAll = tk.Button(framePlayBtn,textvariable=btntext,width=3,font=("新細明體",10),command=play,state=tk.DISABLED)
+    btntext.set("|＞")    
+    sep1.grid(row=0,column=0,sticky="E")  # 加第一列空白，讓版面美觀些   
+    btnPlayAll.grid(row=0,column=0,sticky="E")
     
+def disp_data():
+    global subs      
     row=2
     start=page * pagesize
     for i in range(0,totfield):
@@ -108,21 +138,13 @@ def disp_data():
             labelE.grid(row=row,column=0,sticky="w",padx=20)
             row+=1
 
-
 def disp_play():
-    global btntext
-    sep1=tk.Label(frameShow, text="\t",fg="white",width="20",font=("Calibri",10))
-    btntext = tk.StringVar()
-    btnPlayAll = tk.Button(framePlayBtn,textvariable=btntext,width=3,font=("新細明體",10),command=play)
-    btntext.set("|＞")
-    btnPlay1 = tk.Button(framePlayBtn,text="|＞",width=3,font=("新細明體",10))
+    btnPlay1 = tk.Button(framePlayBtn,text="|＞",width=3,font=("新細明體",10),command=play_slice)
     btnPlay2 = tk.Button(framePlayBtn,text="|＞",width=3,font=("新細明體",10))
     btnPlay3 = tk.Button(framePlayBtn,text="|＞",width=3,font=("新細明體",10))
     btnPlay4 = tk.Button(framePlayBtn,text="|＞",width=3,font=("新細明體",10))
     btnPlay5 = tk.Button(framePlayBtn,text="|＞",width=3,font=("新細明體",10))
     btnPlay6 = tk.Button(framePlayBtn,text="|＞",width=3,font=("新細明體",10))
-    sep1.grid(row=0,column=0,sticky="E")  # 加第一列空白，讓版面美觀些   
-    btnPlayAll.grid(row=0,column=0,sticky="E")
     btnPlay1.grid(row=1,column=0,sticky="E")
     btnPlay2.grid(row=2,column=0,sticky="E")
     btnPlay3.grid(row=3,column=0,sticky="E")
@@ -135,14 +157,15 @@ def disp_play():
 def disp_time():
     # Grab Current Song Elapsed Time
     current_time = pyg.mixer.music.get_pos() / 1000
-
     # convert to time format
     converted_current_time = time.strftime('%M:%S', time.gmtime(current_time))
-    
     # Output time to status bar
     status_bar.config(text=converted_current_time)
     # update time
     status_bar.after(1000,disp_time)
+
+def calc_seconds(min, sec, mili):
+    return min*60+sec+mili/1000
 
 # Create Menu
 filemenu = tk.Menu(win)
@@ -193,5 +216,5 @@ btnBottom.grid(row=0, column=3, padx=5, pady=5)
 status_bar = tk.Label(win,text='',bd=1,relief="groove",anchor="e")
 status_bar.pack(fill="x", side="bottom", ipady=2)
 
-#First()
+disp_hdr()
 win.mainloop()
