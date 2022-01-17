@@ -10,7 +10,7 @@ import pysrt as srt
 import math
 
 def window():
-    global frameShow, subtitles
+    global frameShow, subtitles, pagevar
     win = tk.Tk()
     win.geometry("860x380")
     win.iconbitmap("followme.ico")
@@ -50,11 +50,17 @@ def window():
     btnBottom.grid(row=0, column=3, padx=2, pady=2) 
     
     # Create Status Bar
-    status_bar = tk.Label(win,text='', bd=1, relief="ridge", anchor="e")
+    frameStatusbar = tk.Frame(win, 
+                         height = 20, 
+                         relief="raised",
+                         borderwidth = 2) 
+    pagevar = tk.IntVar()
+    labelPage = tk.Label(frameStatusbar, textvariable=str(pagevar))
 
     frameToolbar.pack(side = "top", fill = "x")  
     frameShow.pack()
-    status_bar.pack(fill="x", side="bottom", ipady=2)
+    frameStatusbar.pack(fill="x", side="bottom", ipady=2)
+    labelPage.pack(anchor="w")
 
     subtitles = Subtitle(6)
     btnFirst.config(command = subtitles.First)
@@ -62,11 +68,10 @@ def window():
     btnNext.config(command = subtitles.Next)
     btnBottom.config(command = subtitles.Bottom)
     
-
     win.mainloop()
 
 class Subtitle():
-    global frameShow
+    global frameShow, pagevar
     def __init__(self, pagesize):
         self.row = 0
         self.start = 0
@@ -159,6 +164,8 @@ class Subtitle():
                 self.subEng[i%6].grid(row = row, column = 3, sticky="w")
                 row+=2
                 
+        pagevar.set(self.page+1)
+        
     def __calc_seconds(self, min, sec, mili):
         return round(min*60+sec+mili/1000, 2)
     
@@ -180,7 +187,7 @@ class Subtitle():
     def Bottom(self): #最後頁
         self.page=self.totpage-1
         self.load_srt(self.subs)
-            
+     
     
 # Add Srt file Function
 def add_srt():
