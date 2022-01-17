@@ -23,27 +23,45 @@ def window():
     # Add Add srt menu
     add_srt_menu = tk.Menu(filemenu, tearoff=0)
     add_srt_menu.add_command(label = '打開檔案', command = add_srt)
+    add_srt_menu.add_command(label = '離開程式', command = win.destroy)
     filemenu.add_cascade(label = "檔案", menu = add_srt_menu)
     filemenu.add_cascade(label = "說明")    
+
+    
     
     # 字幕顯示區
-    #labelwords = tk.Label(win, text="") #空白列
-    frameTool  = tk.Frame(win, 
-                         width = 860, 
-                         height = 30, 
-                         relief="ridge",
-                         borderwidth = 1)  
+    frameToolbar  = tk.Frame(win, 
+                         #width = 860, 
+                         #height = 30, 
+                         relief="raised",
+                         borderwidth = 2)  
     frameShow = tk.Frame(win, 
                          width = 860, 
                          height = 300)
+    
+    # Toolbar
+    btnFirst = tk.Button(frameToolbar, text="|<", width=3)
+    btnPrev = tk.Button(frameToolbar, text="<", width=3)
+    btnNext = tk.Button(frameToolbar, text=">", width=3)
+    btnBottom = tk.Button(frameToolbar, text=">|", width=3)
+    btnFirst.grid(row=0, column=0, padx=2, pady=2)
+    btnPrev.grid(row=0, column=1, padx=2, pady=2)
+    btnNext.grid(row=0, column=2, padx=2, pady=2)        
+    btnBottom.grid(row=0, column=3, padx=2, pady=2) 
+    
     # Create Status Bar
     status_bar = tk.Label(win,text='', bd=1, relief="ridge", anchor="e")
 
-    frameTool.pack()  
+    frameToolbar.pack(side = "top", fill = "x")  
     frameShow.pack()
     status_bar.pack(fill="x", side="bottom", ipady=2)
 
     subtitles = Subtitle(6)
+    btnFirst.config(command = subtitles.First)
+    btnPrev.config(command = subtitles.Prev)
+    btnNext.config(command = subtitles.Next)
+    btnBottom.config(command = subtitles.Bottom)
+    
 
     win.mainloop()
 
@@ -55,7 +73,7 @@ class Subtitle():
         self.page = 0
         self.pagesize = 6
         self.totpage = 0
-        #self.totfield = 0
+        self.subs = 0
         self.index = []
         self.empty = []
         self.duration = []
@@ -114,9 +132,12 @@ class Subtitle():
             
     def load_srt(self, subs):
         row = 1
+        self.subs = subs
+        #first = self.subs[0]
+        #print(first)
         datasize=len(subs) #資料筆數
-        totpage=math.ceil(datasize/self.pagesize) #總頁數
-        totfield=self.pagesize*totpage #總欄位數        
+        self.totpage=math.ceil(datasize/self.pagesize) #總頁數
+        totfield=self.pagesize*self.totpage #總欄位數        
         start = self.page * self.pagesize
         for i in range(0, totfield):
             if i >= start and i < start + self.pagesize:
@@ -124,17 +145,41 @@ class Subtitle():
                 self.duration.append(tk.Label(frameShow,
                                               #text = subs[i].duration,
                                               font=("Calibri",12)))
-                self.duration[i%6].config(
-                    text = self.__calc_seconds(subs[i].duration.minutes,
-                                                 subs[i].duration.seconds,
-                                                 subs[i].duration.milliseconds))
+                if i < datasize:
+                    self.duration[i%6].config(
+                        text = self.__calc_seconds(subs[i].duration.minutes,
+                                                     subs[i].duration.seconds,
+                                                     subs[i].duration.milliseconds))
+                    self.subEng[i%6].config(text = subs[i].text)
+                else:
+                    self.duration[i%6].config(text = "")
+                    self.subEng[i%6].config(text = "")
+                    
                 self.duration[i%6].grid(row = row, column = 1, rowspan = 2)
-                self.subEng[i%6].config(text = subs[i].text)
                 self.subEng[i%6].grid(row = row, column = 3, sticky="w")
                 row+=2
                 
     def __calc_seconds(self, min, sec, mili):
-        return min*60+sec+mili/1000
+        return round(min*60+sec+mili/1000, 2)
+    
+    def First(self):  # 首頁
+        self.page = 0
+        self.load_srt(self.subs)
+     
+    def Prev(self):  #上一頁
+        if self.page > 0:
+            self.page -=1
+            self.load_srt(self.subs)
+
+    def Next(self): #下一頁
+        if self.page < self.totpage-1:
+            self.page += 1
+            #print(self.page)
+            self.load_srt(self.subs)
+        
+    def Bottom(self): #最後頁
+        self.page=self.totpage-1
+        self.load_srt(self.subs)
             
     
 # Add Srt file Function
