@@ -8,13 +8,17 @@ import tkinter as tk
 import tkinter.filedialog
 import pysrt as srt
 import math
+import pygame as pyg
 
 def window():
-    global frameShow, subtitles, pagevar
+    global frameShow, subtitles, labelPage
     win = tk.Tk()
     win.geometry("860x380")
     win.iconbitmap("followme.ico")
     win.title("FollowME")
+
+    # Initialze Pygame Mixer
+    pyg.mixer.init()
 
     # Create Menu
     filemenu = tk.Menu(win)
@@ -54,8 +58,8 @@ def window():
                          height = 20, 
                          relief="raised",
                          borderwidth = 2) 
-    pagevar = tk.IntVar()
-    labelPage = tk.Label(frameStatusbar, textvariable=str(pagevar))
+
+    labelPage = tk.Label(frameStatusbar, text="")
 
     frameToolbar.pack(side = "top", fill = "x")  
     frameShow.pack()
@@ -71,20 +75,25 @@ def window():
     win.mainloop()
 
 class Subtitle():
-    global frameShow, pagevar
+    global frameShow, labelPage
     def __init__(self, pagesize):
         self.row = 0
         self.start = 0
         self.page = 0
+        self.datasize = 0;  #資料筆數
         self.pagesize = 6
         self.totpage = 0
+        self.totfield = 0
         self.subs = 0
+        self.song = 0
+        self.tt_play_btn = 0
         self.index = []
         self.empty = []
         self.duration = []
         self.play_btn= []
         self.subEng = []
         self.subCht = []
+        self.firstPlay = 0
         for row in range(self.pagesize + 1):
             if row == 0:
                 # table title
@@ -97,7 +106,7 @@ class Subtitle():
                                       text = "duration",
                                       width = 15,
                                       font = ("Calibri",12))
-                tt_play_btn = tk.Button(frameShow,
+                self.tt_play_btn = tk.Button(frameShow,
                                        text = "|＞", 
                                        width=3,
                                        font=("新細明體",10),
@@ -110,7 +119,7 @@ class Subtitle():
                                   font = ("Calibri",12))
                 tt_idx_lbl.grid(row = row, column = 0)
                 tt_dra_lbl.grid(row = row, column = 1)
-                tt_play_btn.grid(row = row, column = 2)
+                self.tt_play_btn.grid(row = row, column = 2)
                 tt_sub_lbl.grid(row = row, column = 3)
             else:
                 #print("%d" % row)
@@ -135,28 +144,34 @@ class Subtitle():
                 self.subEng[row-1].grid(row = row*2-1, column = 3, sticky="w")
                 self.subCht[row-1].grid(row = row*2, column = 3, sticky="w")  
             
-    def load_srt(self, subs):
-        row = 1
+    def load_srt(self, subs, song):
         self.subs = subs
         #first = self.subs[0]
         #print(first)
-        datasize=len(subs) #資料筆數
-        self.totpage=math.ceil(datasize/self.pagesize) #總頁數
-        totfield=self.pagesize*self.totpage #總欄位數        
+        self.datasize=len(subs) #資料筆數
+        self.totpage=math.ceil(self.datasize/self.pagesize) #總頁數
+        self.totfield=self.pagesize*self.totpage #總欄位數  
+        self.__set_song(song)
+        self.tt_play_btn.configure(state=tk.NORMAL, command=self.play)
+        
+    def refresh_page(self):
+        row = 1
         start = self.page * self.pagesize
-        for i in range(0, totfield):
+        for i in range(0, self.totfield):
             if i >= start and i < start + self.pagesize:
                 #print("i=%d" % i)
                 self.duration.append(tk.Label(frameShow,
                                               #text = subs[i].duration,
                                               font=("Calibri",12)))
-                if i < datasize:
+                if i < self.datasize:
+                    self.index[i%6].config(text = self.subs[i].index)
                     self.duration[i%6].config(
-                        text = self.__calc_seconds(subs[i].duration.minutes,
-                                                     subs[i].duration.seconds,
-                                                     subs[i].duration.milliseconds))
-                    self.subEng[i%6].config(text = subs[i].text)
+                        text = self.__calc_seconds(self.subs[i].duration.minutes,
+                                                   self.subs[i].duration.seconds,
+                                                   self.subs[i].duration.milliseconds))
+                    self.subEng[i%6].config(text = self.subs[i].text)
                 else:
+                    self.index[i%6].config(text = "")
                     self.duration[i%6].config(text = "")
                     self.subEng[i%6].config(text = "")
                     
@@ -164,41 +179,58 @@ class Subtitle():
                 self.subEng[i%6].grid(row = row, column = 3, sticky="w")
                 row+=2
                 
-        pagevar.set(self.page+1)
+        labelPage.configure(text = str(self.page+1) + "/" + str(self.totpage))
+        
         
     def __calc_seconds(self, min, sec, mili):
         return round(min*60+sec+mili/1000, 2)
     
     def First(self):  # 首頁
         self.page = 0
-        self.load_srt(self.subs)
+        self.refresh_page()
      
     def Prev(self):  #上一頁
         if self.page > 0:
             self.page -=1
-            self.load_srt(self.subs)
+            self.refresh_page()
 
     def Next(self): #下一頁
         if self.page < self.totpage-1:
             self.page += 1
-            #print(self.page)
-            self.load_srt(self.subs)
+            self.refresh_page()
         
     def Bottom(self): #最後頁
         self.page=self.totpage-1
-        self.load_srt(self.subs)
+        self.refresh_page()
+        
+    def __set_song(self, song):
+        self.song = song
      
+    # Play and pause selected srt's mp3
+    def play(self):
+        if(self.tt_play_btn['text'] == "|＞"):
+            if self.firstPlay == 0:
+                pyg.mixer.music.load(song)
+                pyg.mixer.music.play(loops=0)
+            else:
+                pyg.mixer.music.unpause()
+            self.tt_play_btn['text'] = ("| |")
+        else:
+            self.tt_play_btn['text'] = ("|＞")
+            pyg.mixer.music.pause()
+        self.firstPlay+=1
     
 # Add Srt file Function
 def add_srt():
-    global subtitles, datasize, totpage, totfield, song
+    global subtitles, song, totpagevar
     file = tkinter.filedialog.askopenfilename(initialdir = ".", 
                                               title = "選擇檔案", 
                                               filetypes =(("Subtitle Files","*.srt"),))
     song = file.replace(".srt",".mp3") # 為了找同檔名的mp3檔
     subs = srt.open(file, encoding = "utf-8")
 
-    subtitles.load_srt(subs)
+    subtitles.load_srt(subs, song)
+    subtitles.refresh_page()
     
 if __name__ == '__main__':
     window()
