@@ -9,6 +9,7 @@ import tkinter.filedialog
 import pysrt as srt
 import math
 import pygame as pyg
+import threading
 
 def window():
     global frameShow, subtitles, labelPage
@@ -93,7 +94,9 @@ class Subtitle():
         self.play_btn= []
         self.subEng = []
         self.subCht = []
+        self.subStart = []
         self.firstPlay = 0
+        self.stopTimer = 0
         for row in range(self.pagesize + 1):
             if row == 0:
                 # table title
@@ -170,10 +173,15 @@ class Subtitle():
                                                    self.subs[i].duration.seconds,
                                                    self.subs[i].duration.milliseconds))
                     self.subEng[i%6].config(text = self.subs[i].text)
+                    sta = self.__calc_seconds(self.subs[i].start.minutes,
+                                                self.subs[i].start.seconds,
+                                                self.subs[i].start.milliseconds)
+                    self.setAB(self.play_btn[i%6], sta, float(self.duration[i%6]['text']))
                 else:
                     self.index[i%6].config(text = "")
                     self.duration[i%6].config(text = "")
                     self.subEng[i%6].config(text = "")
+                    self.play_btn[i%6].configure(state=tk.DISABLED)
                     
                 self.duration[i%6].grid(row = row, column = 1, rowspan = 2)
                 self.subEng[i%6].grid(row = row, column = 3, sticky="w")
@@ -220,6 +228,27 @@ class Subtitle():
             pyg.mixer.music.pause()
         self.firstPlay+=1
     
+    def setAB(self, btn, start, duration):
+        btn.configure(command = lambda:self.playAB(start, duration), state=tk.NORMAL)
+
+    def playTest(self, start, duration):
+        pyg.mixer.music.unload()
+        pyg.mixer.music.load(self.song)
+        pyg.mixer.music.play(loops=0, start = start)
+        # print("helloworld %f - %f" % (start, duration))
+
+    def playAB(self, start, duration):
+        self.playTest(start, duration)
+        
+        if self.stopTimer:
+            self.stopTimer.cancel()
+        self.stopTimer = threading.Timer(duration, self.stop)
+        self.stopTimer.start()
+        
+    def stop(self):
+        pyg.mixer.music.stop()
+        #print("stop")
+        
 # Add Srt file Function
 def add_srt():
     global subtitles, song, totpagevar
