@@ -4,6 +4,9 @@ Created on Fri Jan 14 11:54:52 2022
 
 @author: Jungle
 """
+import base64
+from icon import img
+import os
 import tkinter as tk
 import tkinter.filedialog
 import pysrt as srt
@@ -15,7 +18,12 @@ def window():
     global frameShow, subtitles, labelPage
     win = tk.Tk()
     win.geometry("860x380")
-    win.iconbitmap("followme.ico")
+    #win.iconbitmap("followme.ico")
+    tmp = open("tmp.ico","wb+")
+    tmp.write(base64.b64decode(img))
+    tmp.close()
+    win.iconbitmap("tmp.ico")
+    os.remove("tmp.ico")
     win.title("FollowME")
 
     # Initialze Pygame Mixer
