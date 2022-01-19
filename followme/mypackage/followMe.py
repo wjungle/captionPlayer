@@ -35,7 +35,8 @@ def window():
         
     # Add Add srt menu
     add_srt_menu = tk.Menu(filemenu, tearoff=0)
-    add_srt_menu.add_command(label = '打開檔案', command = add_srt)
+    add_srt_menu.add_command(label = '開啟檔案...', command = add_srt)
+    add_srt_menu.add_command(label = '開啟連接...', command = open_yt)
     add_srt_menu.add_command(label = '離開程式', command = win.destroy)
     filemenu.add_cascade(label = "檔案", menu = add_srt_menu)
     filemenu.add_cascade(label = "說明")    
@@ -103,7 +104,7 @@ class Subtitle():
         self.subEng = []
         self.subCht = []
         self.subStart = []
-        self.firstPlay = 0
+        self.playing = 0
         self.stopTimer = 0
         for row in range(self.pagesize + 1):
             if row == 0:
@@ -224,32 +225,40 @@ class Subtitle():
      
     # Play and pause selected srt's mp3
     def play(self):
+        self.__cancelTimer()
         if(self.tt_play_btn['text'] == "|＞"):
-            if self.firstPlay == 0:
+            if pyg.mixer.music.get_busy() == True:
+                pyg.mixer.music.play(loops=0, start = 0)
+                print("a")
+            elif self.playing == 0:
+                pyg.mixer.music.unload()
                 pyg.mixer.music.load(song)
                 pyg.mixer.music.play(loops=0)
-            else:
+                print("c")
+            elif self.playing == 2:
                 pyg.mixer.music.unpause()
+                print(str(pyg.mixer.music.get_pos()) + " b")
             self.tt_play_btn['text'] = ("| |")
+            self.playing = 1
         else:
             self.tt_play_btn['text'] = ("|＞")
             pyg.mixer.music.pause()
-        self.firstPlay+=1
+            print("d")
+            self.playing = 2
     
     def setAB(self, btn, start, duration):
-        btn.configure(command = lambda:self.playAB(start, duration), state=tk.NORMAL)
+        btn.configure(command = lambda:self.setABTimer(start, duration), state=tk.NORMAL)
 
-    def playTest(self, start, duration):
+    def playAB(self, start, duration):
         pyg.mixer.music.unload()
         pyg.mixer.music.load(self.song)
         pyg.mixer.music.play(loops=0, start = start)
         # print("helloworld %f - %f" % (start, duration))
+        self.playing = 0
 
-    def playAB(self, start, duration):
-        self.playTest(start, duration)
-        
-        if self.stopTimer:
-            self.stopTimer.cancel()
+    def setABTimer(self, start, duration):
+        self.playAB(start, duration)
+        self.__cancelTimer()
         self.stopTimer = threading.Timer(duration, self.stop)
         self.stopTimer.start()
         
@@ -257,17 +266,25 @@ class Subtitle():
         pyg.mixer.music.stop()
         #print("stop")
         
+    def __cancelTimer(self):
+        if self.stopTimer:
+            self.stopTimer.cancel()
+        
 # Add Srt file Function
 def add_srt():
     global subtitles, song, totpagevar
     file = tkinter.filedialog.askopenfilename(initialdir = ".", 
                                               title = "選擇檔案", 
                                               filetypes =(("Subtitle Files","*.srt"),))
-    song = file.replace(".srt",".mp3") # 為了找同檔名的mp3檔
-    subs = srt.open(file, encoding = "utf-8")
-
-    subtitles.load_srt(subs, song)
-    subtitles.refresh_page()
+    if file:
+        song = file.replace(".srt",".mp3") # 為了找同檔名的mp3檔
+        subs = srt.open(file, encoding = "utf-8")
+    
+        subtitles.load_srt(subs, song)
+        subtitles.refresh_page()
+    
+def open_yt():
+    pass
     
 if __name__ == '__main__':
     window()
