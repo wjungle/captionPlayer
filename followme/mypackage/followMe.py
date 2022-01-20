@@ -71,12 +71,14 @@ def window():
         
     # Add Add srt menu
     add_srt_menu = tk.Menu(filemenu, tearoff = 0)
+    readme_menu = tk.Menu(filemenu, tearoff = 0)
     #add_srt_menu.add_command(label = '開啟檔案...', command = add_srt)
     add_srt_menu.add_command(label = '開啟檔案...', command = lambda:add_srt(toolbar))
     add_srt_menu.add_command(label = '開啟連接...', command = open_yt)
     add_srt_menu.add_command(label = '離開程式', command = win.destroy)
+    readme_menu.add_command(label = '資訊', command = readme)
     filemenu.add_cascade(label = "檔案", menu = add_srt_menu)
-    filemenu.add_cascade(label = "說明")        
+    filemenu.add_cascade(label = "說明", menu = readme_menu)        
     
     win.mainloop()
     
@@ -228,7 +230,7 @@ class Subtitle():
         self.datasize=len(subs) #資料筆數
         self.totpage=math.ceil(self.datasize/self.pagesize) #總頁數
         self.totfield=self.pagesize*self.totpage #總欄位數  
-        self.tt_play_btn.configure(state=tk.NORMAL, command=self.play)
+        #self.tt_play_btn.configure(state=tk.NORMAL, command=self.play)
         
     def refresh_page(self):
         row = 1
@@ -239,6 +241,7 @@ class Subtitle():
                 self.duration.append(tk.Label(frameShow,
                                               #text = subs[i].duration,
                                               font=("Calibri",12)))
+                
                 if i < self.datasize:
                     self.index[i%6].config(text = self.subs[i].index)
                     self.duration[i%6].config(
@@ -250,6 +253,17 @@ class Subtitle():
                                                 self.subs[i].start.seconds,
                                                 self.subs[i].start.milliseconds)
                     self.setAB(self.play_btn[i%6], sta, float(self.duration[i%6]['text']))
+                    
+                    if i % 6 == 0:
+                        pageStart = sta
+                    end = self.__calc_seconds(self.subs[i].end.minutes,
+                                                self.subs[i].end.seconds,
+                                                self.subs[i].end.milliseconds)
+                    pageDuration = end - pageStart
+                    #print(pageDuration)
+                    self.tt_play_btn.configure(state=tk.NORMAL, 
+                            command = lambda:self.setABTimer(pageStart, 
+                                                             pageDuration))
                 else:
                     self.index[i%6].config(text = "")
                     self.duration[i%6].config(text = "")
@@ -297,10 +311,9 @@ class Subtitle():
 
     def playAB(self, start, duration):
         pyg.mixer.music.unload()
-        # pyg.mixer.music.load(self.song)
         pyg.mixer.music.load(song.getSong())
         pyg.mixer.music.play(loops=0, start = start)
-        # print("helloworld %f - %f" % (start, duration))
+        #print("helloworld %f - %f" % (start, duration))
         song.setSongStatus(songStatus['PLAYING'])
 
     def setABTimer(self, start, duration):
@@ -338,7 +351,7 @@ class Song():
     def stop(self):
         pyg.mixer.music.stop()
         song.setSongStatus(songStatus['INIT'])
-        print("song's stop")    
+        #print("song's stop")    
         
     def cancelTimer(self):
         if self.stopTimer:
@@ -356,10 +369,14 @@ def add_srt(toolbar):
     
         subtitles.load_srt(subs, songfile)
         song = Song(songfile)
-        subtitles.refresh_page()
+        #subtitles.refresh_page()
+        subtitles.First()
         toolbar.setPageBtnEn()
         toolbar.setGPlayBtn(subtitles)
         toolbar.setSongCmd(song)
+    
+def readme():
+    tk.messagebox.showinfo("About FollowME", "Mp3 English 字幕MP3播放器")
     
 def open_yt():
     pass
