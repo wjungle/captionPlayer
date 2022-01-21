@@ -6,13 +6,18 @@ Created on Fri Jan 14 11:54:52 2022
 """
 import base64
 from icon import img
-import os
+# import os
 import tkinter as tk
+import tkinter.messagebox
 import tkinter.filedialog
+import tkinter.simpledialog
 import pysrt as srt
-import math
+from math import ceil
 import pygame as pyg
 import threading
+# from pytube import YouTube
+# from moviepy import editor as mv
+from os import remove
 
 songStatus = {
     'INIT' : 0,
@@ -21,15 +26,16 @@ songStatus = {
 }
 
 def window():
-    global frameShow, subtitles, labelPage, toolbar
+    global win, frameShow, subtitles, labelPage, toolbar
     win = tk.Tk()
-    win.geometry("860x390")
+    win.geometry("1000x390")
+    win.resizable(width = False, height = False)
     #win.iconbitmap("followme.ico")
     tmp = open("tmp.ico","wb+")
     tmp.write(base64.b64decode(img))
     tmp.close()
     win.iconbitmap("tmp.ico")
-    os.remove("tmp.ico")
+    remove("tmp.ico")
     win.title("FollowME")
 
     # Initialze Pygame Mixer
@@ -42,7 +48,7 @@ def window():
                          relief="raised",
                          borderwidth = 2)  
     frameShow = tk.Frame(win, 
-                         width = 860, 
+                         width = 1000, 
                          height = 300)
     # Create Status Bar
     frameStatusbar = tk.Frame(win, 
@@ -75,7 +81,7 @@ def window():
     #add_srt_menu.add_command(label = '開啟檔案...', command = add_srt)
     add_srt_menu.add_command(label = '開啟檔案...', command = lambda:add_srt(toolbar))
     add_srt_menu.add_command(label = '開啟連接...', command = open_yt)
-    add_srt_menu.add_command(label = '離開程式', command = win.destroy)
+    add_srt_menu.add_command(label = '離開程式', command = lambda:close_window(win))
     readme_menu.add_command(label = '資訊', command = readme)
     filemenu.add_cascade(label = "檔案", menu = add_srt_menu)
     filemenu.add_cascade(label = "說明", menu = readme_menu)        
@@ -162,7 +168,6 @@ class Subtitle():
         self.totpage = 0
         self.totfield = 0
         self.subs = 0
-        self.song = 0
         self.tt_play_btn = 0
         self.index = []
         self.empty = []
@@ -171,8 +176,6 @@ class Subtitle():
         self.subEng = []
         self.subCht = []
         self.subStart = []
-        self.playing = 0
-        self.stopTimer = 0
         for row in range(self.pagesize + 1):
             if row == 0:
                 # table title
@@ -183,7 +186,7 @@ class Subtitle():
                                       font = ("Calibri",12))
                 tt_dra_lbl = tk.Label(frameShow, 
                                       text = "duration",
-                                      width = 15,
+                                      width = 12,
                                       font = ("Calibri",12))
                 self.tt_play_btn = tk.Button(frameShow,
                                        text = "▷", 
@@ -194,7 +197,7 @@ class Subtitle():
                                   text = "subtitle",
                                   fg = "white",
                                   bg = "silver",
-                                  width = 82,
+                                  width = 103,
                                   font = ("Calibri",12))
                 tt_idx_lbl.grid(row = row, column = 0)
                 tt_dra_lbl.grid(row = row, column = 1)
@@ -228,7 +231,7 @@ class Subtitle():
         #first = self.subs[0]
         #print(first)
         self.datasize=len(subs) #資料筆數
-        self.totpage=math.ceil(self.datasize/self.pagesize) #總頁數
+        self.totpage=ceil(self.datasize/self.pagesize) #總頁數
         self.totfield=self.pagesize*self.totpage #總欄位數  
         #self.tt_play_btn.configure(state=tk.NORMAL, command=self.play)
         
@@ -297,9 +300,6 @@ class Subtitle():
     def Bottom(self): #最後頁
         self.page=self.totpage-1
         self.refresh_page()
-        
-    def __set_song(self, song):
-        self.song = song
      
     # Play and pause selected srt's mp3
     def play(self):
@@ -355,7 +355,10 @@ class Song():
         
     def cancelTimer(self):
         if self.stopTimer:
-            self.stopTimer.cancel()        
+            self.stopTimer.cancel()       
+            
+    def closeSong(self):
+        pyg.mixer.music.unload()
         
 # Add Srt file Function
 def add_srt(toolbar):
@@ -376,10 +379,39 @@ def add_srt(toolbar):
         toolbar.setSongCmd(song)
     
 def readme():
-    tk.messagebox.showinfo("About FollowME", "Mp3 English 字幕MP3播放器")
+    tkinter.messagebox.showinfo("About FollowME", "Mp3 English 字幕MP3播放器")
+
+def close_window(win):
+    song.closeSong()
+    win.destroy()
     
 def open_yt():
-    pass
+    ytAddr = tkinter.simpledialog.askstring(title = '請輸入位址', 
+                                       prompt='輸入youtube網址\t\t\t\t\t\t\t\t')
+    # if ytAddr:
+    #     yt = YouTube(ytAddr)
+    #     #print(yt.streams)
+    #     #print(yt.captions)
+    #     pathdir = '.'
+    #     print("開始下載聲音檔")
+        
+    #     caption = yt.captions.get_by_language_code('a.en')
+    #     if caption:
+    #         srt = caption.generate_srt_captions()
+    #         srtfile = open(yt.title + '.srt', 'w', encoding = 'UTF-8')
+    #         srtfile.write(srt)
+    #         srtfile.close()
+        
+    #     yt.streams.filter(subtype='mp4').first().download(pathdir)
+    #     filename = yt.title + '.mp4'
+    #     targetname = yt.title + '.mp3'
+    #     video = mv.VideoFileClip(filename)
+    #     video.audio.write_audiofile(targetname)
+    #     video.close()
+    #     if os.path.exists(filename):
+    #         remove(filename)
+    #     tk.messagebox.showinfo("info", "下載完成")
+
     
 if __name__ == '__main__':
     window()
