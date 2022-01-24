@@ -8,6 +8,7 @@ import base64
 from icon import img
 # import os
 import tkinter as tk
+import tkinter.ttk as ttk
 import tkinter.messagebox
 import tkinter.filedialog
 import tkinter.simpledialog
@@ -95,6 +96,7 @@ class Toolbar():
         self.btnNext = 0
         self.btnBottom = 0
         self.btnGPlay = 0
+        self.pageList = []
         # Toolbar
         self.btnFirst = tk.Button(frameToolbar, text="|<", width=3, state=tk.DISABLED)
         self.btnPrev = tk.Button(frameToolbar, text="<", width=3, state=tk.DISABLED)
@@ -104,11 +106,13 @@ class Toolbar():
                              width=3, 
                              font=("新細明體",12), 
                              state=tk.DISABLED)
+        self.cbb = ttk.Combobox(frameToolbar, width = 6)
         self.btnFirst.grid(row=0, column=0, padx=2, pady=2)
         self.btnPrev.grid(row=0, column=1, padx=2, pady=2)
         self.btnNext.grid(row=0, column=2, padx=2, pady=2)
         self.btnBottom.grid(row=0, column=3, padx=2, pady=2) 
         self.btnGPlay.grid(row=0, column=4, padx=2, pady=2)
+        self.cbb.grid(row=0, column=5, padx=2, pady=2)
         
     def setSubsCmd(self, subtitles):
         self.btnFirst.config(command = subtitles.First)
@@ -124,6 +128,13 @@ class Toolbar():
         self.btnPrev.config(state=tk.NORMAL)
         self.btnNext.config(state=tk.NORMAL)
         self.btnBottom.config(state=tk.NORMAL)
+        
+    def setComboBoxPage(self, subtitles):
+        # print(subtitles.totpage)
+        for i in range(subtitles.totpage):
+            self.pageList.append(str(i + 1))
+        self.cbb["values"] = self.pageList
+        self.cbb.bind("<<ComboboxSelected>>", subtitles.Assign)
         
     def setGPlayBtn(self, subtitles):
         #self.btnGPlay.config(command = subtitles.play, state=tk.NORMAL)
@@ -277,12 +288,14 @@ class Subtitle():
                 if i < self.datasize:
                     self.index[i%6].config(text = self.subs[i].index)
                     self.duration[i%6].config(
-                        text = self.__calc_seconds(self.subs[i].duration.minutes,
+                        text = self.__calc_seconds(self.subs[i].duration.hours,
+                                                   self.subs[i].duration.minutes,
                                                    self.subs[i].duration.seconds,
                                                    self.subs[i].duration.milliseconds))
                     self.subEng[i%6].config(text = self.textEng[i])
                     self.subCht[i%6].config(text = self.textCht[i])
-                    sta = self.__calc_seconds(self.subs[i].start.minutes,
+                    sta = self.__calc_seconds(self.subs[i].start.hours,
+                                                self.subs[i].start.minutes,
                                                 self.subs[i].start.seconds,
                                                 self.subs[i].start.milliseconds)
                     self.setAB(self.play_btn[i%6], sta, float(self.duration[i%6]['text']))
@@ -290,7 +303,8 @@ class Subtitle():
                     # install page play button
                     if i % 6 == 0:
                         pageStart = sta
-                    end = self.__calc_seconds(self.subs[i].end.minutes,
+                    end = self.__calc_seconds(self.subs[i].end.hours,
+                                                self.subs[i].end.minutes,
                                                 self.subs[i].end.seconds,
                                                 self.subs[i].end.milliseconds)
                     pageDuration = end - pageStart
@@ -311,8 +325,9 @@ class Subtitle():
         labelPage.configure(text = str(self.page+1) + "/" + str(self.totpage))
         
         
-    def __calc_seconds(self, min, sec, mili):
-        return round(min*60+sec+mili/1000, 2)
+    def __calc_seconds(self, hour, min, sec, mili):
+        # print("%d-%d-%d-%f" % (hour, min, sec, mili))
+        return round(hour*3600 + min*60+sec+mili/1000, 2)
     
     def First(self):  # 首頁
         self.page = 0
@@ -330,6 +345,11 @@ class Subtitle():
         
     def Bottom(self): #最後頁
         self.page=self.totpage-1
+        self.refresh_page()
+        
+    def Assign(self, event): #*args
+        page = event.widget.get()
+        self.page = int(page) - 1
         self.refresh_page()
      
     # Play and pause selected srt's mp3
@@ -406,6 +426,7 @@ def add_srt(toolbar):
         subtitles.First()
         toolbar.setPageBtnEn()
         toolbar.setGPlayBtn(subtitles)
+        toolbar.setComboBoxPage(subtitles)
         toolbar.setSongCmd(song)
     
 def readme():
