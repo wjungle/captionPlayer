@@ -106,13 +106,17 @@ class Toolbar():
                              width=3, 
                              font=("新細明體",12), 
                              state=tk.DISABLED)
+        self.btnEng = tk.Button(frameToolbar, text="英", width=3, state=tk.DISABLED)
+        self.btnCht = tk.Button(frameToolbar, text="中", width=3, state=tk.DISABLED)
         self.cbb = ttk.Combobox(frameToolbar, width = 6)
         self.btnFirst.grid(row=0, column=0, padx=2, pady=2)
         self.btnPrev.grid(row=0, column=1, padx=2, pady=2)
         self.btnNext.grid(row=0, column=2, padx=2, pady=2)
         self.btnBottom.grid(row=0, column=3, padx=2, pady=2) 
         self.btnGPlay.grid(row=0, column=4, padx=2, pady=2)
-        self.cbb.grid(row=0, column=5, padx=2, pady=2)
+        self.btnEng.grid(row=0, column=5, padx=2, pady=2)
+        self.btnCht.grid(row=0, column=6, padx=2, pady=2)
+        self.cbb.grid(row=0, column=7, padx=2, pady=2)
         
     def setSubsCmd(self, subtitles):
         self.btnFirst.config(command = subtitles.First)
@@ -136,11 +140,34 @@ class Toolbar():
         self.cbb["values"] = self.pageList
         self.cbb.bind("<<ComboboxSelected>>", subtitles.Assign)
         
-    def setGPlayBtn(self, subtitles):
+    def setLangBtn(self, subtitles):
         #self.btnGPlay.config(command = subtitles.play, state=tk.NORMAL)
-        pass
+        if subtitles.haveEng == 1 or subtitles.haveEng == 2:
+            self.btnEng.config(state=tk.NORMAL, relief='sunken', 
+                               command = lambda:self.toggleEngBtn(subtitles))
+        if subtitles.haveCht == 1 or subtitles.haveCht == 2:
+            self.btnCht.config(state=tk.NORMAL, relief='sunken',
+                               command = lambda:self.toggleChtBtn(subtitles))
     
-    # Play and pause selected srt's mp3
+    def toggleEngBtn(self, subs):
+        if subs.haveEng == 2:
+            subs.haveEng = 1
+            self.btnEng.config(relief='raise')
+        elif subs.haveEng == 1:
+            subs.haveEng = 2
+            self.btnEng.config(relief='sunken')
+        subs.refresh_page()
+            
+    def toggleChtBtn(self, subs):
+        if subs.haveCht == 2:
+            subs.haveCht = 1
+            self.btnCht.config(relief='raise')
+        elif subs.haveCht == 1:
+            subs.haveCht = 2
+            self.btnCht.config(relief='sunken')
+        subs.refresh_page()
+            
+
     def play(self, song):
         song.cancelTimer()
         if (self.btnGPlay['text'] == "▶"):
@@ -190,6 +217,8 @@ class Subtitle():
         self.textEng = []
         self.textCht = []
         self.subStart = []
+        self.haveEng = 0
+        self.haveCht = 0
         for row in range(self.pagesize + 1):
             if row == 0:
                 # table title
@@ -250,12 +279,15 @@ class Subtitle():
             
     def load_srt(self, subs, song):
         self.subs = subs
+        self.textEng.clear()
+        self.textCht.clear()
         for sub in subs:
             # print(sub.index)
             if "\n" in sub.text:
                 subText = sub.text.split("\n")
                 # print(subText[0])
                 # print(subText[1])
+                self.haveCht = 2
                 if (self.is_contains_chinese(subText[0])):
                     self.textCht.append(subText[0])
                     self.textEng.append(subText[1])
@@ -266,6 +298,7 @@ class Subtitle():
                 # print(sub.text)
                 self.textEng.append(sub.text)
                 self.textCht.append("")
+        self.haveEng = 2
         
         #first = self.subs[0]
         #print(first)
@@ -292,8 +325,16 @@ class Subtitle():
                                                    self.subs[i].duration.minutes,
                                                    self.subs[i].duration.seconds,
                                                    self.subs[i].duration.milliseconds))
-                    self.subEng[i%6].config(text = self.textEng[i])
-                    self.subCht[i%6].config(text = self.textCht[i])
+                    
+                    if self.haveEng == 2:
+                        self.subEng[i%6].config(text = self.textEng[i])
+                    elif self.haveEng == 1:
+                        self.subEng[i%6].config(text = "")
+                    if self.haveCht == 2:
+                        self.subCht[i%6].config(text = self.textCht[i])
+                    elif self.haveCht == 1:
+                        self.subCht[i%6].config(text = "")
+                    
                     sta = self.__calc_seconds(self.subs[i].start.hours,
                                                 self.subs[i].start.minutes,
                                                 self.subs[i].start.seconds,
@@ -316,6 +357,7 @@ class Subtitle():
                     self.index[i%6].config(text = "")
                     self.duration[i%6].config(text = "")
                     self.subEng[i%6].config(text = "")
+                    self.subCht[i%6].config(text = "")
                     self.play_btn[i%6].configure(state=tk.DISABLED)
                     
                 self.duration[i%6].grid(row = row, column = 1, rowspan = 2)
@@ -425,7 +467,7 @@ def add_srt(toolbar):
         song = Song(songfile)
         subtitles.First()
         toolbar.setPageBtnEn()
-        toolbar.setGPlayBtn(subtitles)
+        toolbar.setLangBtn(subtitles)
         toolbar.setComboBoxPage(subtitles)
         toolbar.setSongCmd(song)
     
