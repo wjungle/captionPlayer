@@ -6,7 +6,7 @@ Created on Fri Jan 14 11:54:52 2022
 """
 import base64
 from icon import img
-# import os
+import os
 import tkinter as tk
 import tkinter.ttk as ttk
 import tkinter.messagebox
@@ -19,6 +19,7 @@ import threading
 # from pytube import YouTube
 # from moviepy import editor as mv
 from os import remove
+import asstosrt
 
 songStatus = {
     'INIT' : 0,
@@ -242,9 +243,9 @@ class Subtitle():
                                       width = 12,
                                       font = ("Calibri",12))
                 self.tt_play_btn = tk.Button(frameShow,
-                                       text = "▷", 
+                                       text = "►", 
                                        width=3,
-                                       font = ("Calibri",10),
+                                       font = ("Calibri", 10),
                                        state=tk.DISABLED)
                 tt_sub_lbl = tk.Label(frameShow, 
                                   text = "subtitle",
@@ -473,12 +474,22 @@ class Song():
 def add_srt(toolbar):
     global subtitles, song
     file = tkinter.filedialog.askopenfilename(initialdir = ".", 
-                                              title = "選擇檔案", 
-                                              filetypes =(("Subtitle Files","*.srt"),))
+                                              title = "選擇字幕", 
+                                              filetypes =(("Subtitle Files","*.srt"),
+                                                          ("advanced substation alpha","*.ass"),))
     if file:
-        songfile = file.replace(".srt",".mp3") # 為了找同檔名的mp3檔
-        subs = srt.open(file, encoding = "utf-8")
-    
+        if "srt" in file:
+            songfile = file.replace(".srt",".mp3") # 為了找同檔名的mp3檔
+            subs = srt.open(file, encoding = "utf-8")
+        elif "ass" in file:
+            songfile = file.replace(".ass",".mp3") # 為了找同檔名的mp3檔
+            ass_file = open(file)
+            subs123 = asstosrt.convert(ass_file)
+            f = open('temp.srt', 'w')
+            f.write(subs123)
+            f.close()
+            subs = srt.open('temp.srt', encoding = "utf-8")
+        
         subtitles.load_srt(subs, songfile)
         song = Song(songfile)
         subtitles.First()
@@ -491,6 +502,8 @@ def readme():
     tkinter.messagebox.showinfo("About Caption Player", "Caption Player v0.2")
 
 def close_window(win):
+    if os.path.exists('temp.srt'):
+        remove('temp.srt')
     song.closeSong()
     win.destroy()
     
