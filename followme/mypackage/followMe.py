@@ -173,8 +173,11 @@ class Subtitle():
         self.empty = []
         self.duration = []
         self.play_btn= []
-        self.subEng = []
+        self.subText = []
+        self.subEng = [] # table
         self.subCht = []
+        self.textEng = []
+        self.textCht = []
         self.subStart = []
         for row in range(self.pagesize + 1):
             if row == 0:
@@ -225,15 +228,41 @@ class Subtitle():
                 self.play_btn[row-1].grid(row = row*2-1, column = 2, sticky="w")
                 self.subEng[row-1].grid(row = row*2-1, column = 3, sticky="w")
                 self.subCht[row-1].grid(row = row*2, column = 3, sticky="w")  
+
+    def is_contains_chinese(self, strs):
+        for _char in strs:
+            if '\u4e00' <= _char <= '\u9fa5':
+                return True
+            else: 
+                continue
+        return False
             
     def load_srt(self, subs, song):
         self.subs = subs
+        for sub in subs:
+            # print(sub.index)
+            if "\n" in sub.text:
+                subText = sub.text.split("\n")
+                # print(subText[0])
+                # print(subText[1])
+                if (self.is_contains_chinese(subText[0])):
+                    self.textCht.append(subText[0])
+                    self.textEng.append(subText[1])
+                else:
+                    self.textEng.append(subText[0])
+                    self.textCht.append(subText[1])
+            else:
+                # print(sub.text)
+                self.textEng.append(sub.text)
+                self.textCht.append("")
+        
         #first = self.subs[0]
         #print(first)
         self.datasize=len(subs) #資料筆數
         self.totpage=ceil(self.datasize/self.pagesize) #總頁數
         self.totfield=self.pagesize*self.totpage #總欄位數  
         #self.tt_play_btn.configure(state=tk.NORMAL, command=self.play)
+        
         
     def refresh_page(self):
         row = 1
@@ -251,12 +280,14 @@ class Subtitle():
                         text = self.__calc_seconds(self.subs[i].duration.minutes,
                                                    self.subs[i].duration.seconds,
                                                    self.subs[i].duration.milliseconds))
-                    self.subEng[i%6].config(text = self.subs[i].text)
+                    self.subEng[i%6].config(text = self.textEng[i])
+                    self.subCht[i%6].config(text = self.textCht[i])
                     sta = self.__calc_seconds(self.subs[i].start.minutes,
                                                 self.subs[i].start.seconds,
                                                 self.subs[i].start.milliseconds)
                     self.setAB(self.play_btn[i%6], sta, float(self.duration[i%6]['text']))
                     
+                    # install page play button
                     if i % 6 == 0:
                         pageStart = sta
                     end = self.__calc_seconds(self.subs[i].end.minutes,
@@ -372,7 +403,6 @@ def add_srt(toolbar):
     
         subtitles.load_srt(subs, songfile)
         song = Song(songfile)
-        #subtitles.refresh_page()
         subtitles.First()
         toolbar.setPageBtnEn()
         toolbar.setGPlayBtn(subtitles)
