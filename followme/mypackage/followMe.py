@@ -37,7 +37,7 @@ def window():
     tmp.close()
     win.iconbitmap("tmp.ico")
     remove("tmp.ico")
-    win.title("FollowME")
+    win.title("Caption Player")
 
     # Initialze Pygame Mixer
     pyg.mixer.init()
@@ -143,19 +143,29 @@ class Toolbar():
     def setLangBtn(self, subtitles):
         #self.btnGPlay.config(command = subtitles.play, state=tk.NORMAL)
         if subtitles.haveEng == 1 or subtitles.haveEng == 2:
-            self.btnEng.config(state=tk.NORMAL, relief='sunken', 
-                               command = lambda:self.toggleEngBtn(subtitles))
+            self.btnEng.config(state=tk.NORMAL,
+                                command = lambda:self.toggleEngBtn(subtitles))
         if subtitles.haveCht == 1 or subtitles.haveCht == 2:
             self.btnCht.config(state=tk.NORMAL, relief='sunken',
                                command = lambda:self.toggleChtBtn(subtitles))
     
     def toggleEngBtn(self, subs):
+        # if subs.haveEng == 2:
+        #     subs.haveEng = 1
+        #     self.btnEng.config(relief='raise')
+        # elif subs.haveEng == 1:
+        #     subs.haveEng = 2
+        #     self.btnEng.config(relief='sunken')
+        # subs.refresh_page()
         if subs.haveEng == 2:
+            subs.haveEng = 4
+            self.btnEng.config(text='E1')
+        elif subs.haveEng == 4:
             subs.haveEng = 1
-            self.btnEng.config(relief='raise')
+            self.btnEng.config(text='英', fg = 'gray')
         elif subs.haveEng == 1:
             subs.haveEng = 2
-            self.btnEng.config(relief='sunken')
+            self.btnEng.config(text='英', fg = 'black')
         subs.refresh_page()
             
     def toggleChtBtn(self, subs):
@@ -296,8 +306,12 @@ class Subtitle():
                     self.textCht.append(subText[1])
             else:
                 # print(sub.text)
-                self.textEng.append(sub.text)
-                self.textCht.append("")
+                if self.is_contains_chinese(sub.text):
+                    self.textCht.append(sub.text)
+                    self.textEng.append("")
+                else:
+                    self.textEng.append(sub.text)
+                    self.textCht.append("")
         self.haveEng = 2
         
         #first = self.subs[0]
@@ -330,6 +344,8 @@ class Subtitle():
                         self.subEng[i%6].config(text = self.textEng[i])
                     elif self.haveEng == 1:
                         self.subEng[i%6].config(text = "")
+                    elif self.haveEng == 4:
+                        self.subEng[i%6].config(text = self.textEng[i].split(' ')[0])
                     if self.haveCht == 2:
                         self.subCht[i%6].config(text = self.textCht[i])
                     elif self.haveCht == 1:
@@ -472,7 +488,7 @@ def add_srt(toolbar):
         toolbar.setSongCmd(song)
     
 def readme():
-    tkinter.messagebox.showinfo("About FollowME", "Mp3 English 字幕MP3播放器")
+    tkinter.messagebox.showinfo("About Caption Player", "Caption Player v0.2")
 
 def close_window(win):
     song.closeSong()
