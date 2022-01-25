@@ -20,6 +20,7 @@ import threading
 # from moviepy import editor as mv
 from os import remove
 import asstosrt
+import time
 
 songStatus = {
     'INIT' : 0,
@@ -225,6 +226,7 @@ class Subtitle():
         self.empty = []
         self.duration = []
         self.play_btn= []
+        self.canvas = []
         self.subText = []
         self.subEng = [] # table
         self.subCht = []
@@ -282,23 +284,21 @@ class Subtitle():
                                                 width = 3, 
                                                 font = ("Calibri",10),
                                                 state=tk.DISABLED))
-                self.subEng.append(tk.Label(self.frameSentence[row],  
-                                            text="", 
-                                            width = 103,
-                                            font=("Calibri",15),
-                                            anchor = 'w'))
-                self.subCht.append(tk.Label(self.frameSentence[row], 
-                                            text="", 
-                                            width = 103,
-                                            font=("Calibri",12),
-                                            anchor = 'w'))
+                self.canvas.append(tk.Canvas(self.frameSentence[row], width = 840, height = 51))
+                                             #relief = 'ridge', borderwidth = 1))
+                
+                self.subEng.append(self.canvas[row-1].create_text(3, 13, text = '', 
+                                                                  font=("Calibri",14), 
+                                                                  anchor = 'w'))
+                self.subCht.append(self.canvas[row-1].create_text(3, 40, text='', 
+                                                                  font=("Calibri",12),
+                                                                  anchor = 'w'))
                 self.sep.append(ttk.Separator(frameShow, orient = 'horizontal'))      
                 
                 self.index[row-1].grid(row = 0, column = 0, rowspan = 2)
                 self.duration[row-1].grid(row = 0, column = 1, rowspan = 2)
-                self.play_btn[row-1].grid(row = 0, column = 2, sticky="w")
-                self.subEng[row-1].grid(row = 0, column = 3, sticky="w")
-                self.subCht[row-1].grid(row = 1, column = 3, sticky="w")  
+                self.play_btn[row-1].grid(row = 0, column = 2, sticky="wn")
+                self.canvas[row-1].grid(row = 0, column = 3, sticky="w", rowspan = 2)
 
             tt_empty.pack()
             self.frameSentence[row].pack()
@@ -345,7 +345,6 @@ class Subtitle():
         self.totfield=self.pagesize*self.totpage #總欄位數  
         #self.tt_play_btn.configure(state=tk.NORMAL, command=self.play)
         
-        
     def refresh_page(self):
         row = 1
         start = self.page * self.pagesize
@@ -360,16 +359,19 @@ class Subtitle():
                                                    self.subs[i].duration.seconds,
                                                    self.subs[i].duration.milliseconds))
                     
+                    # english
                     if self.haveEng == subStatus['SHOWALL']:
-                        self.subEng[i%6].config(text = self.textEng[i])
+                        self.canvas[i%6].itemconfig(self.subEng[i%6], text = self.textEng[i])
                     elif self.haveEng == subStatus['HIDEALL']:
-                        self.subEng[i%6].config(text = "")
+                        self.canvas[i%6].itemconfig(self.subEng[i%6], text = "")
                     elif self.haveEng ==  subStatus['SHOWAWORD']:
-                        self.subEng[i%6].config(text = self.textEng[i].split(' ')[0])
+                        self.canvas[i%6].itemconfig(self.subEng[i%6], text = self.textEng[i].split(' ')[0])
+                        
+                    # chinese    
                     if self.haveCht == subStatus['SHOWALL']:
-                        self.subCht[i%6].config(text = self.textCht[i])
+                        self.canvas[i%6].itemconfig(self.subCht[i%6], text = self.textCht[i])
                     elif self.haveCht == subStatus['HIDEALL']:
-                        self.subCht[i%6].config(text = "")
+                        self.canvas[i%6].itemconfig(self.subCht[i%6], text = "")
                     
                     sta = self.__calc_seconds(self.subs[i].start.hours,
                                                 self.subs[i].start.minutes,
@@ -392,8 +394,8 @@ class Subtitle():
                 else:
                     self.index[i%6].config(text = "")
                     self.duration[i%6].config(text = "")
-                    self.subEng[i%6].config(text = "")
-                    self.subCht[i%6].config(text = "")
+                    self.canvas[i%6].itemconfig(self.subEng[i%6], text = "")
+                    self.canvas[i%6].itemconfig(self.subCht[i%6], text = "")
                     self.play_btn[i%6].configure(state=tk.DISABLED)
                 row+=2
                 
