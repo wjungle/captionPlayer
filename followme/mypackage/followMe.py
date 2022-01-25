@@ -27,6 +27,13 @@ songStatus = {
     'PAUSE' : 2
 }
 
+subStatus = {
+    'NONE' : 0,
+    'HIDEALL' : 1,
+    'SHOWALL' : 2,
+    'SHOWAWORD' : 4
+}
+
 def window():
     global win, frameShow, subtitles, labelPage, toolbar
     win = tk.Tk()
@@ -153,30 +160,23 @@ class Toolbar():
                                command = lambda:self.toggleChtBtn(subtitles))
     
     def toggleEngBtn(self, subs):
-        # if subs.haveEng == 2:
-        #     subs.haveEng = 1
-        #     self.btnEng.config(relief='raise')
-        # elif subs.haveEng == 1:
-        #     subs.haveEng = 2
-        #     self.btnEng.config(relief='sunken')
-        # subs.refresh_page()
-        if subs.haveEng == 2:
-            subs.haveEng = 4
+        if subs.haveEng == subStatus['SHOWALL']:
+            subs.haveEng = subStatus['SHOWAWORD']
             self.btnEng.config(text='E1')
-        elif subs.haveEng == 4:
-            subs.haveEng = 1
+        elif subs.haveEng == subStatus['SHOWAWORD']:
+            subs.haveEng = subStatus['HIDEALL']
             self.btnEng.config(text='英', fg = 'gray')
-        elif subs.haveEng == 1:
-            subs.haveEng = 2
+        elif subs.haveEng == subStatus['HIDEALL']:
+            subs.haveEng = subStatus['SHOWALL']
             self.btnEng.config(text='英', fg = 'black')
         subs.refresh_page()
             
     def toggleChtBtn(self, subs):
-        if subs.haveCht == 2:
-            subs.haveCht = 1
+        if subs.haveCht == subStatus['SHOWALL']:
+            subs.haveCht = subStatus['HIDEALL']
             self.btnCht.config(relief='raise')
-        elif subs.haveCht == 1:
-            subs.haveCht = 2
+        elif subs.haveCht == subStatus['HIDEALL']:
+            subs.haveCht = subStatus['SHOWALL']
             self.btnCht.config(relief='sunken')
         subs.refresh_page()
             
@@ -232,8 +232,8 @@ class Subtitle():
         self.textCht = []
         self.sep = []
         self.subStart = []
-        self.haveEng = 0
-        self.haveCht = 0
+        self.haveEng = subStatus['NONE']
+        self.haveCht = subStatus['NONE']
         for row in range(self.pagesize + 1):
             if row == 0:
                 tt_empty = tk.Label(frameShow, text = "\t", font = ("Calibri", 1))
@@ -336,7 +336,7 @@ class Subtitle():
                 else:
                     self.textEng.append(sub.text)
                     self.textCht.append("")
-        self.haveEng = 2
+        self.haveEng = subStatus['SHOWALL']
         
         #first = self.subs[0]
         #print(first)
@@ -360,15 +360,15 @@ class Subtitle():
                                                    self.subs[i].duration.seconds,
                                                    self.subs[i].duration.milliseconds))
                     
-                    if self.haveEng == 2:
+                    if self.haveEng == subStatus['SHOWALL']:
                         self.subEng[i%6].config(text = self.textEng[i])
-                    elif self.haveEng == 1:
+                    elif self.haveEng == subStatus['HIDEALL']:
                         self.subEng[i%6].config(text = "")
-                    elif self.haveEng == 4:
+                    elif self.haveEng ==  subStatus['SHOWAWORD']:
                         self.subEng[i%6].config(text = self.textEng[i].split(' ')[0])
-                    if self.haveCht == 2:
+                    if self.haveCht == subStatus['SHOWALL']:
                         self.subCht[i%6].config(text = self.textCht[i])
-                    elif self.haveCht == 1:
+                    elif self.haveCht == subStatus['HIDEALL']:
                         self.subCht[i%6].config(text = "")
                     
                     sta = self.__calc_seconds(self.subs[i].start.hours,
