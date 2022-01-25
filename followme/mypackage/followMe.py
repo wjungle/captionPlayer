@@ -22,6 +22,8 @@ from os import remove
 import asstosrt
 import time
 
+global song
+
 songStatus = {
     'INIT' : 0,
     'PLAYING' : 1,
@@ -119,6 +121,13 @@ class Toolbar():
         self.btnEng = tk.Button(frameToolbar, text="英", width=3, state=tk.DISABLED)
         self.btnCht = tk.Button(frameToolbar, text="中", width=3, state=tk.DISABLED)
         self.cbb = ttk.Combobox(frameToolbar, width = 6)
+        self.lbl1 = tk.Label(frameToolbar, text=" ", width=3)
+        self.btn1 = tk.Button(frameToolbar, text="壹", width=3, state=tk.DISABLED)
+        self.btn2 = tk.Button(frameToolbar, text="貳", width=3, state=tk.DISABLED)
+        self.btn3 = tk.Button(frameToolbar, text="參", width=3, state=tk.DISABLED)
+        self.btn4 = tk.Button(frameToolbar, text="仿", width=3, state=tk.DISABLED)
+        self.btn5 = tk.Button(frameToolbar, text="聽", width=3, state=tk.DISABLED)
+        self.btn6 = tk.Button(frameToolbar, text="陸", width=3, state=tk.DISABLED)
         self.btnFirst.grid(row=0, column=0, padx=2, pady=2)
         self.btnPrev.grid(row=0, column=1, padx=2, pady=2)
         self.btnNext.grid(row=0, column=2, padx=2, pady=2)
@@ -127,6 +136,13 @@ class Toolbar():
         self.btnEng.grid(row=0, column=5, padx=2, pady=2)
         self.btnCht.grid(row=0, column=6, padx=2, pady=2)
         self.cbb.grid(row=0, column=7, padx=2, pady=2)
+        self.lbl1.grid(row=0, column=8, padx=2, pady=2)
+        self.btn1.grid(row=0, column=9, padx=2, pady=2)
+        self.btn2.grid(row=0, column=10, padx=2, pady=2)
+        self.btn3.grid(row=0, column=11, padx=2, pady=2)
+        self.btn4.grid(row=0, column=12, padx=2, pady=2)
+        self.btn5.grid(row=0, column=13, padx=2, pady=2)
+        self.btn6.grid(row=0, column=14, padx=2, pady=2)
         
     def setSubsCmd(self, subtitles):
         self.btnFirst.config(command = subtitles.First)
@@ -137,12 +153,21 @@ class Toolbar():
     def setSongCmd(self, song):
         self.btnGPlay.config(command = lambda:self.play(song), state=tk.NORMAL)
         
+    def clrSongCmd(self):
+            self.btnGPlay.config(state=tk.DISABLED)
+        
     def setPageBtnEn(self):
         self.btnFirst.config(state=tk.NORMAL)
         self.btnPrev.config(state=tk.NORMAL)
         self.btnNext.config(state=tk.NORMAL)
         self.btnBottom.config(state=tk.NORMAL)
-        
+
+    def setPageBtnDis(self):
+        self.btnFirst.config(state=tk.DISABLED)
+        self.btnPrev.config(state=tk.DISABLED)
+        self.btnNext.config(state=tk.DISABLED)
+        self.btnBottom.config(state=tk.DISABLED)        
+
     def setComboBoxPage(self, subtitles):
         self.pageList.clear()
         # print(subtitles.totpage)
@@ -150,6 +175,30 @@ class Toolbar():
             self.pageList.append(str(i + 1))
         self.cbb["values"] = self.pageList
         self.cbb.bind("<<ComboboxSelected>>", subtitles.Assign)
+
+    def changeSubsStatus(self, lesson, subs):
+        if lesson == 1 or lesson == 4:
+            subs.haveEng = subStatus['SHOWALL']
+            subs.haveCht = subStatus['HIDEALL']
+        elif lesson == 2 or lesson == 6:
+            subs.haveEng = subStatus['HIDEALL']
+            subs.haveCht = subStatus['SHOWALL']
+        elif lesson == 3:
+            subs.haveEng = subStatus['SHOWAWORD']
+            subs.haveCht = subStatus['HIDEALL']
+        elif lesson == 5:
+            subs.haveEng = subStatus['HIDEALL']
+            subs.haveCht = subStatus['HIDEALL']   
+        subs.refresh_page()            
+            
+            
+    def setLessonFlow(self, subs):
+        self.btn1.config(command = lambda:self.changeSubsStatus(1, subs), state=tk.NORMAL)
+        self.btn2.config(command = lambda:self.changeSubsStatus(2, subs), state=tk.NORMAL)
+        self.btn3.config(command = lambda:self.changeSubsStatus(3, subs), state=tk.NORMAL)
+        self.btn4.config(command = lambda:self.changeSubsStatus(4, subs), state=tk.NORMAL)
+        self.btn5.config(command = lambda:self.changeSubsStatus(5, subs), state=tk.NORMAL)
+        self.btn6.config(command = lambda:self.changeSubsStatus(6, subs), state=tk.NORMAL)
         
     def setLangBtn(self, subtitles):
         #self.btnGPlay.config(command = subtitles.play, state=tk.NORMAL)
@@ -507,8 +556,8 @@ class Song():
         print("song's play")
             
     def stop(self):
-        pyg.mixer.music.stop()
         song.setSongStatus(songStatus['INIT'])
+        pyg.mixer.music.stop()
         #print("song's stop")    
         
     def cancelTimer(self):
@@ -525,11 +574,14 @@ def add_srt(toolbar):
                                               title = "選擇字幕", 
                                               filetypes =(("Subtitle Files","*.srt"),
                                                           ("advanced substation alpha","*.ass"),))
+    toolbar.clrSongCmd()
+    
     if file:
-        if "srt" in file:
+        win.title("Caption Player - " + file)
+        if ".srt" in file:
             songfile = file.replace(".srt",".mp3") # 為了找同檔名的mp3檔
             subs = srt.open(file, encoding = "utf-8")
-        elif "ass" in file:
+        elif ".ass" in file:
             songfile = file.replace(".ass",".mp3") # 為了找同檔名的mp3檔
             ass_file = open(file)
             subs123 = asstosrt.convert(ass_file)
@@ -541,21 +593,27 @@ def add_srt(toolbar):
         subtitles.load_srt(subs, songfile)
         song = Song(songfile)
         subtitles.First()
-        toolbar.setPageBtnEn()
         toolbar.setLangBtn(subtitles)
         toolbar.setComboBoxPage(subtitles)
-        toolbar.setSongCmd(song)
+        toolbar.setLessonFlow(subtitles)
+            
+        if os.path.isfile(songfile) == False:
+            tkinter.messagebox.showwarning("warning", "沒有對應的mp3")
+        else:
+            toolbar.setPageBtnEn()
+            toolbar.setSongCmd(song)
+    
     
 def readme():
-    tkinter.messagebox.showinfo("About Caption Player", "Caption Player v0.2")
+    tkinter.messagebox.showinfo("About Caption Player", "Caption Player \nV0.3")
 
 
 def close_window():
-    global song
-    song = 0
+    print("close_window")
     if os.path.exists('temp.srt'):
         remove('temp.srt')
-    if song:
+    if song.getSongStatus() == songStatus['PLAYING']:
+        song.stop()
         song.closeSong()
     win.destroy()
     
