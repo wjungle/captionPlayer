@@ -157,7 +157,7 @@ class Toolbar():
             self.btnEng.config(state=tk.NORMAL,
                                 command = lambda:self.toggleEngBtn(subtitles))
         if subtitles.haveCht == 1 or subtitles.haveCht == 2:
-            self.btnCht.config(state=tk.NORMAL, relief='sunken',
+            self.btnCht.config(state=tk.NORMAL, 
                                command = lambda:self.toggleChtBtn(subtitles))
     
     def toggleEngBtn(self, subs):
@@ -287,7 +287,7 @@ class Subtitle():
                 self.canvas.append(tk.Canvas(self.frameSentence[row], width = 840, height = 51))
                                              #relief = 'ridge', borderwidth = 1))
                 
-                self.subEng.append(self.canvas[row-1].create_text(3, 13, text = '', 
+                self.subEng.append(self.canvas[row-1].create_text(3, 13, text = '\t\t\t\t\t', 
                                                                   font=("Calibri",14), 
                                                                   anchor = 'w'))
                 self.subCht.append(self.canvas[row-1].create_text(3, 40, text='', 
@@ -321,7 +321,7 @@ class Subtitle():
                 subText = sub.text.split("\n")
                 # print(subText[0])
                 # print(subText[1])
-                self.haveCht = 2
+                self.haveCht = subStatus['HIDEALL']
                 if (self.is_contains_chinese(subText[0])):
                     self.textCht.append(subText[0])
                     self.textEng.append(subText[1])
@@ -344,6 +344,27 @@ class Subtitle():
         self.totpage=ceil(self.datasize/self.pagesize) #總頁數
         self.totfield=self.pagesize*self.totpage #總欄位數  
         #self.tt_play_btn.configure(state=tk.NORMAL, command=self.play)
+        
+    #def __eng_wipe_in(self, event, index):
+    def __wipe_in(self, event, index):    
+        delta, delay = 40, 0
+        # print(index)
+        
+        if self.haveEng == subStatus['HIDEALL'] or self.haveEng == subStatus['SHOWAWORD']:
+            subString = self.textEng[index]
+            for i in range(len(subString) + 1):
+                s = subString[:i]
+                update_text = lambda s=s: self.canvas[index%6].itemconfigure(self.subEng[i%6], text=s)
+                self.canvas[index%6].after(delay, update_text)
+                delay += delta  
+        if self.haveCht == subStatus['HIDEALL'] or self.haveCht == subStatus['SHOWAWORD']:
+            subString = self.textCht[index]
+            for i in range(len(subString) + 1):
+                s = subString[:i]
+                update_text = lambda s=s: self.canvas[index%6].itemconfigure(self.subCht[i%6], text=s)
+                self.canvas[index%6].after(delay, update_text)
+                delay += delta 
+             
         
     def refresh_page(self):
         row = 1
@@ -372,6 +393,15 @@ class Subtitle():
                         self.canvas[i%6].itemconfig(self.subCht[i%6], text = self.textCht[i])
                     elif self.haveCht == subStatus['HIDEALL']:
                         self.canvas[i%6].itemconfig(self.subCht[i%6], text = "")
+                        
+                    # bind
+                    self.canvas[i%6].bind("<Button-1>", lambda event, arg=i: self.__wipe_in(event, arg))
+                    # self.canvas[i%6].tag_bind(self.subEng[i%6], "<Button-1>", 
+                    #                           lambda event, 
+                    #                           arg=i: self.__eng_wipe_in(event, arg))
+                    # self.canvas[i%6].tag_bind(self.subCht[i%6], "<Button-1>", 
+                    #                           lambda event, 
+                    #                           arg=i: self.__cht_wipe_in(event, arg))
                     
                     sta = self.__calc_seconds(self.subs[i].start.hours,
                                                 self.subs[i].start.minutes,
