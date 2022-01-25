@@ -30,7 +30,7 @@ songStatus = {
 def window():
     global win, frameShow, subtitles, labelPage, toolbar
     win = tk.Tk()
-    win.geometry("1000x390")
+    win.geometry("1000x460")
     win.resizable(width = False, height = False)
     #win.iconbitmap("followme.ico")
     tmp = open("tmp.ico","wb+")
@@ -39,6 +39,7 @@ def window():
     win.iconbitmap("tmp.ico")
     remove("tmp.ico")
     win.title("Caption Player")
+    win.protocol("WM_DELETE_WINDOW", close_window)
 
     # Initialze Pygame Mixer
     pyg.mixer.init()
@@ -50,8 +51,8 @@ def window():
                          relief="raised",
                          borderwidth = 2)  
     frameShow = tk.Frame(win, 
-                         width = 1000, 
-                         height = 300)
+                         width = 1000)
+                         #height = 400)
     # Create Status Bar
     frameStatusbar = tk.Frame(win, 
                          height = 20, 
@@ -83,7 +84,7 @@ def window():
     #add_srt_menu.add_command(label = '開啟檔案...', command = add_srt)
     add_srt_menu.add_command(label = '開啟檔案...', command = lambda:add_srt(toolbar))
     add_srt_menu.add_command(label = '開啟連接...', command = open_yt)
-    add_srt_menu.add_command(label = '離開程式', command = lambda:close_window(win))
+    add_srt_menu.add_command(label = '離開程式', command = close_window)
     readme_menu.add_command(label = '資訊', command = readme)
     filemenu.add_cascade(label = "檔案", menu = add_srt_menu)
     filemenu.add_cascade(label = "說明", menu = readme_menu)        
@@ -135,6 +136,7 @@ class Toolbar():
         self.btnBottom.config(state=tk.NORMAL)
         
     def setComboBoxPage(self, subtitles):
+        self.pageList.clear()
         # print(subtitles.totpage)
         for i in range(subtitles.totpage):
             self.pageList.append(str(i + 1))
@@ -218,6 +220,7 @@ class Subtitle():
         self.totfield = 0
         self.subs = 0
         self.tt_play_btn = 0
+        self.frameSentence = []
         self.index = []
         self.empty = []
         self.duration = []
@@ -227,27 +230,31 @@ class Subtitle():
         self.subCht = []
         self.textEng = []
         self.textCht = []
+        self.sep = []
         self.subStart = []
         self.haveEng = 0
         self.haveCht = 0
         for row in range(self.pagesize + 1):
             if row == 0:
+                tt_empty = tk.Label(frameShow, text = "\t", font = ("Calibri", 1))
+                self.frameSentence.append(tk.Frame(frameShow, 
+                                     width = 1000, height = 40))
                 # table title
-                tt_idx_lbl = tk.Label(frameShow, 
+                tt_idx_lbl = tk.Label(self.frameSentence[row], 
                                       text = "#",
                                       width = 5,
                                       bg="silver",
                                       font = ("Calibri",12))
-                tt_dra_lbl = tk.Label(frameShow, 
+                tt_dra_lbl = tk.Label(self.frameSentence[row], 
                                       text = "duration",
-                                      width = 12,
+                                      width = 10,
                                       font = ("Calibri",12))
-                self.tt_play_btn = tk.Button(frameShow,
-                                       text = "►", 
-                                       width=3,
-                                       font = ("Calibri", 10),
-                                       state=tk.DISABLED)
-                tt_sub_lbl = tk.Label(frameShow, 
+                self.tt_play_btn = tk.Button(self.frameSentence[row], 
+                                        text = "►", 
+                                        width=3,
+                                        font = ("Calibri", 10),
+                                        state=tk.DISABLED)
+                tt_sub_lbl = tk.Label(self.frameSentence[row], 
                                   text = "subtitle",
                                   fg = "white",
                                   bg = "silver",
@@ -258,27 +265,43 @@ class Subtitle():
                 self.tt_play_btn.grid(row = row, column = 2)
                 tt_sub_lbl.grid(row = row, column = 3)
             else:
-                #print("%d" % row)
-                self.index.append(tk.Label(frameShow, 
-                                           text = '%d' % row, 
-                                           width = 5, 
-                                           font = ("Calibri",12)))
-                self.play_btn.append(tk.Button(frameShow, 
+                self.frameSentence.append(tk.Frame(frameShow, 
+                                     width = 1000, 
+                                     height = 50, relief = 'ridge', borderwidth = 1))
+
+                self.index.append(tk.Label(self.frameSentence[row], 
+                                            text = '%d' % row, 
+                                            width = 5, 
+                                            font = ("Calibri",12)))
+                self.duration.append(tk.Label(self.frameSentence[row],
+                                              #text = subs[i].duration,
+                                              width = 10,
+                                              font=("Calibri",12)))
+                self.play_btn.append(tk.Button(self.frameSentence[row], 
                                                 text = "▷", 
                                                 width = 3, 
                                                 font = ("Calibri",10),
                                                 state=tk.DISABLED))
-                self.subEng.append(tk.Label(frameShow, 
+                self.subEng.append(tk.Label(self.frameSentence[row],  
                                             text="", 
-                                            font=("Calibri",12)))
-                self.subCht.append(tk.Label(frameShow, 
+                                            width = 103,
+                                            font=("Calibri",15),
+                                            anchor = 'w'))
+                self.subCht.append(tk.Label(self.frameSentence[row], 
                                             text="", 
-                                            font=("Calibri",10)))
+                                            width = 103,
+                                            font=("Calibri",12),
+                                            anchor = 'w'))
+                self.sep.append(ttk.Separator(frameShow, orient = 'horizontal'))      
                 
-                self.index[row-1].grid(row = row*2-1, column = 0, rowspan = 2)
-                self.play_btn[row-1].grid(row = row*2-1, column = 2, sticky="w")
-                self.subEng[row-1].grid(row = row*2-1, column = 3, sticky="w")
-                self.subCht[row-1].grid(row = row*2, column = 3, sticky="w")  
+                self.index[row-1].grid(row = 0, column = 0, rowspan = 2)
+                self.duration[row-1].grid(row = 0, column = 1, rowspan = 2)
+                self.play_btn[row-1].grid(row = 0, column = 2, sticky="w")
+                self.subEng[row-1].grid(row = 0, column = 3, sticky="w")
+                self.subCht[row-1].grid(row = 1, column = 3, sticky="w")  
+
+            tt_empty.pack()
+            self.frameSentence[row].pack()
 
     def is_contains_chinese(self, strs):
         for _char in strs:
@@ -329,10 +352,6 @@ class Subtitle():
         for i in range(0, self.totfield):
             if i >= start and i < start + self.pagesize:
                 #print("i=%d" % i)
-                self.duration.append(tk.Label(frameShow,
-                                              #text = subs[i].duration,
-                                              font=("Calibri",12)))
-                
                 if i < self.datasize:
                     self.index[i%6].config(text = self.subs[i].index)
                     self.duration[i%6].config(
@@ -376,9 +395,6 @@ class Subtitle():
                     self.subEng[i%6].config(text = "")
                     self.subCht[i%6].config(text = "")
                     self.play_btn[i%6].configure(state=tk.DISABLED)
-                    
-                self.duration[i%6].grid(row = row, column = 1, rowspan = 2)
-                self.subEng[i%6].grid(row = row, column = 3, sticky="w")
                 row+=2
                 
         labelPage.configure(text = str(self.page+1) + "/" + str(self.totpage))
@@ -501,10 +517,14 @@ def add_srt(toolbar):
 def readme():
     tkinter.messagebox.showinfo("About Caption Player", "Caption Player v0.2")
 
-def close_window(win):
+
+def close_window():
+    global song
+    song = 0
     if os.path.exists('temp.srt'):
         remove('temp.srt')
-    song.closeSong()
+    if song:
+        song.closeSong()
     win.destroy()
     
 def open_yt():
