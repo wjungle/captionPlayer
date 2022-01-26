@@ -20,7 +20,6 @@ import threading
 # from moviepy import editor as mv
 from os import remove
 import asstosrt
-import time
 
 global song
 
@@ -39,8 +38,12 @@ subStatus = {
 
 def window():
     global win, frameShow, subtitles, labelPage, toolbar
+    pageSize = 6
     win = tk.Tk()
-    win.geometry("1000x460")
+    if pageSize == 6:
+        win.geometry("1000x460")
+    elif pageSize == 7:
+        win.geometry("1000x515")
     win.resizable(width = False, height = False)
     #win.iconbitmap("followme.ico")
     tmp = open("tmp.ico","wb+")
@@ -72,7 +75,7 @@ def window():
     # tool bar
     toolbar = Toolbar(frameToolbar)
     # main frame
-    subtitles = Subtitle(6)
+    subtitles = Subtitle(pageSize)
     # status bar
     labelPage = tk.Label(frameStatusbar, text="")
     
@@ -121,13 +124,14 @@ class Toolbar():
         self.btnEng = tk.Button(frameToolbar, text="英", width=3, state=tk.DISABLED)
         self.btnCht = tk.Button(frameToolbar, text="中", width=3, state=tk.DISABLED)
         self.cbb = ttk.Combobox(frameToolbar, width = 6)
+        self.cbbRow = ttk.Combobox(frameToolbar, width = 8)
         self.lbl1 = tk.Label(frameToolbar, text=" ", width=3)
-        self.btn1 = tk.Button(frameToolbar, text="壹", width=3, state=tk.DISABLED)
-        self.btn2 = tk.Button(frameToolbar, text="貳", width=3, state=tk.DISABLED)
-        self.btn3 = tk.Button(frameToolbar, text="參", width=3, state=tk.DISABLED)
-        self.btn4 = tk.Button(frameToolbar, text="仿", width=3, state=tk.DISABLED)
+        self.btn1 = tk.Button(frameToolbar, text="翻", width=3, state=tk.DISABLED)
+        self.btn2 = tk.Button(frameToolbar, text="譯", width=3, state=tk.DISABLED)
+        self.btn3 = tk.Button(frameToolbar, text="憶", width=3, state=tk.DISABLED)
+        self.btn4 = tk.Button(frameToolbar, text="說", width=3, state=tk.DISABLED)
         self.btn5 = tk.Button(frameToolbar, text="聽", width=3, state=tk.DISABLED)
-        self.btn6 = tk.Button(frameToolbar, text="陸", width=3, state=tk.DISABLED)
+        self.btn6 = tk.Button(frameToolbar, text="複", width=3, state=tk.DISABLED)
         self.btnC = tk.Button(frameToolbar, text="清", width=3, state=tk.DISABLED)
         self.btnFirst.grid(row=0, column=0, padx=2, pady=2)
         self.btnPrev.grid(row=0, column=1, padx=2, pady=2)
@@ -137,14 +141,18 @@ class Toolbar():
         self.btnEng.grid(row=0, column=5, padx=2, pady=2)
         self.btnCht.grid(row=0, column=6, padx=2, pady=2)
         self.cbb.grid(row=0, column=7, padx=2, pady=2)
-        self.lbl1.grid(row=0, column=8, padx=2, pady=2)
-        self.btn1.grid(row=0, column=9, padx=2, pady=2)
-        self.btn2.grid(row=0, column=10, padx=2, pady=2)
-        self.btn3.grid(row=0, column=11, padx=2, pady=2)
-        self.btn4.grid(row=0, column=12, padx=2, pady=2)
-        self.btn5.grid(row=0, column=13, padx=2, pady=2)
-        self.btn6.grid(row=0, column=14, padx=2, pady=2)
-        self.btnC.grid(row=0, column=15, padx=2, pady=2)
+        self.cbb.set("page")
+        self.cbbRow.grid(row=0, column=8, padx=2, pady=2)
+        self.cbbRow.set("一頁幾句")
+        self.cbbRow["values"] = ['6', '7', '8']
+        self.lbl1.grid(row=0, column=9, padx=2, pady=2)
+        self.btn1.grid(row=0, column=10, padx=2, pady=2)
+        self.btn2.grid(row=0, column=11, padx=2, pady=2)
+        self.btn3.grid(row=0, column=12, padx=2, pady=2)
+        self.btn4.grid(row=0, column=13, padx=2, pady=2)
+        self.btn5.grid(row=0, column=14, padx=2, pady=2)
+        self.btn6.grid(row=0, column=15, padx=2, pady=2)
+        self.btnC.grid(row=0, column=16, padx=2, pady=2)
         
     def setSubsCmd(self, subtitles):
         self.btnFirst.config(command = subtitles.First)
@@ -177,6 +185,9 @@ class Toolbar():
             self.pageList.append(str(i + 1))
         self.cbb["values"] = self.pageList
         self.cbb.bind("<<ComboboxSelected>>", subtitles.Assign)
+        
+    def setComboBoxRow(self, subtitles):
+        self.cbbRow.bind("<<ComboboxSelected>>", subtitles.ChgRow)
 
     def changeSubsStatus(self, lesson, subs):
         if lesson == 1:
@@ -212,6 +223,9 @@ class Toolbar():
         self.btn4.config(bg = 'SystemButtonFace')  
         self.btn5.config(bg = 'SystemButtonFace')  
         self.btn6.config(bg = 'SystemButtonFace')  
+        subs.haveEng = subStatus['HIDEALL']
+        subs.haveCht = subStatus['HIDEALL'] 
+        subs.refresh_page() 
             
     def setLessonFlow(self, subs):
         self.btn1.config(command = lambda:self.changeSubsStatus(1, subs), state=tk.NORMAL)
@@ -287,7 +301,7 @@ class Subtitle():
         self.start = 0
         self.page = 0
         self.datasize = 0;  #資料筆數
-        self.pagesize = 6
+        self.pagesize = pagesize
         self.totpage = 0
         self.totfield = 0
         self.subs = 0
@@ -360,6 +374,7 @@ class Subtitle():
                 
                 self.subEng.append(self.canvas[row-1].create_text(3, 13, text = '\t\t\t\t\t', 
                                                                   font=("Calibri",14), 
+                                                                  activefill = 'blue', 
                                                                   anchor = 'w'))
                 self.subCht.append(self.canvas[row-1].create_text(3, 40, text='', 
                                                                   font=("Calibri",12),
@@ -439,6 +454,7 @@ class Subtitle():
         
     def refresh_page(self):
         row = 1
+        # print("refresh_page %d" % self.pagesize)
         start = self.page * self.pagesize
         for i in range(0, self.totfield):
             if i >= start and i < start + self.pagesize:
@@ -525,10 +541,15 @@ class Subtitle():
         self.page=self.totpage-1
         self.refresh_page()
         
-    def Assign(self, event): #*args
+    def Assign(self, event):
         page = event.widget.get()
         self.page = int(page) - 1
         self.refresh_page()
+     
+    def ChgRow(self, event):  
+        self.pagesize =  int(event.widget.get())
+        # print(self.pagesize)
+        # window()
      
     # Play and pause selected srt's mp3
     def play(self):
@@ -614,16 +635,21 @@ def add_srt(toolbar):
         
         subtitles.load_srt(subs, songfile)
         song = Song(songfile)
-        subtitles.First()
-        toolbar.setLangBtn(subtitles)
-        toolbar.setComboBoxPage(subtitles)
-        toolbar.setLessonFlow(subtitles)
-            
-        if os.path.isfile(songfile) == False:
-            tkinter.messagebox.showwarning("warning", "沒有對應的mp3")
-        else:
-            toolbar.setPageBtnEn()
-            toolbar.setSongCmd(song)
+        createObj(songfile)
+    
+def createObj(songfile):
+    global subtitles, song
+    subtitles.First()
+    toolbar.setLangBtn(subtitles)
+    toolbar.setComboBoxPage(subtitles)
+    toolbar.setComboBoxRow(subtitles)
+    toolbar.setLessonFlow(subtitles)
+        
+    if os.path.isfile(songfile) == False:
+        tkinter.messagebox.showwarning("warning", "沒有對應的mp3")
+    else:
+        toolbar.setPageBtnEn()
+        toolbar.setSongCmd(song)
     
     
 def readme():
@@ -631,12 +657,18 @@ def readme():
 
 
 def close_window():
+    global song
     print("close_window")
     if os.path.exists('temp.srt'):
         remove('temp.srt')
-    if song.getSongStatus() == songStatus['PLAYING']:
-        song.stop()
-        song.closeSong()
+    try:
+        song
+    except NameError:
+        pass
+    else:
+        if song.getSongStatus() == songStatus['PLAYING']:
+            song.stop()
+            song.closeSong()
     win.destroy()
     
 def open_yt():
