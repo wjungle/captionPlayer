@@ -128,6 +128,7 @@ class Toolbar():
         self.btn4 = tk.Button(frameToolbar, text="仿", width=3, state=tk.DISABLED)
         self.btn5 = tk.Button(frameToolbar, text="聽", width=3, state=tk.DISABLED)
         self.btn6 = tk.Button(frameToolbar, text="陸", width=3, state=tk.DISABLED)
+        self.btnC = tk.Button(frameToolbar, text="清", width=3, state=tk.DISABLED)
         self.btnFirst.grid(row=0, column=0, padx=2, pady=2)
         self.btnPrev.grid(row=0, column=1, padx=2, pady=2)
         self.btnNext.grid(row=0, column=2, padx=2, pady=2)
@@ -143,6 +144,7 @@ class Toolbar():
         self.btn4.grid(row=0, column=12, padx=2, pady=2)
         self.btn5.grid(row=0, column=13, padx=2, pady=2)
         self.btn6.grid(row=0, column=14, padx=2, pady=2)
+        self.btnC.grid(row=0, column=15, padx=2, pady=2)
         
     def setSubsCmd(self, subtitles):
         self.btnFirst.config(command = subtitles.First)
@@ -177,20 +179,39 @@ class Toolbar():
         self.cbb.bind("<<ComboboxSelected>>", subtitles.Assign)
 
     def changeSubsStatus(self, lesson, subs):
-        if lesson == 1 or lesson == 4:
+        if lesson == 1:
             subs.haveEng = subStatus['SHOWALL']
             subs.haveCht = subStatus['HIDEALL']
-        elif lesson == 2 or lesson == 6:
+            self.btn1.config(bg = 'lightyellow') 
+        elif lesson == 2:
             subs.haveEng = subStatus['HIDEALL']
             subs.haveCht = subStatus['SHOWALL']
+            self.btn2.config(bg = 'lightyellow') 
         elif lesson == 3:
             subs.haveEng = subStatus['SHOWAWORD']
             subs.haveCht = subStatus['HIDEALL']
+            self.btn3.config(bg = 'lightyellow')
+        elif lesson == 4:
+            subs.haveEng = subStatus['SHOWALL']
+            subs.haveCht = subStatus['HIDEALL'] 
+            self.btn4.config(bg = 'lightyellow')
         elif lesson == 5:
             subs.haveEng = subStatus['HIDEALL']
             subs.haveCht = subStatus['HIDEALL']   
+            self.btn5.config(bg = 'lightyellow')
+        elif lesson == 6:
+            subs.haveEng = subStatus['HIDEALL']
+            subs.haveCht = subStatus['SHOWALL']
+            self.btn6.config(bg = 'lightyellow')             
         subs.refresh_page()            
             
+    def clearLessonColor(self, subs):
+        self.btn1.config(bg = 'SystemButtonFace')   
+        self.btn2.config(bg = 'SystemButtonFace')  
+        self.btn3.config(bg = 'SystemButtonFace')  
+        self.btn4.config(bg = 'SystemButtonFace')  
+        self.btn5.config(bg = 'SystemButtonFace')  
+        self.btn6.config(bg = 'SystemButtonFace')  
             
     def setLessonFlow(self, subs):
         self.btn1.config(command = lambda:self.changeSubsStatus(1, subs), state=tk.NORMAL)
@@ -199,6 +220,7 @@ class Toolbar():
         self.btn4.config(command = lambda:self.changeSubsStatus(4, subs), state=tk.NORMAL)
         self.btn5.config(command = lambda:self.changeSubsStatus(5, subs), state=tk.NORMAL)
         self.btn6.config(command = lambda:self.changeSubsStatus(6, subs), state=tk.NORMAL)
+        self.btnC.config(command = lambda:self.clearLessonColor(subs), state=tk.NORMAL)
         
     def setLangBtn(self, subtitles):
         #self.btnGPlay.config(command = subtitles.play, state=tk.NORMAL)
@@ -403,15 +425,15 @@ class Subtitle():
             subString = self.textEng[index]
             for i in range(len(subString) + 1):
                 s = subString[:i]
-                update_text = lambda s=s: self.canvas[index%6].itemconfigure(self.subEng[i%6], text=s)
-                self.canvas[index%6].after(delay, update_text)
+                update_text = lambda s=s: self.canvas[index%self.pagesize].itemconfigure(self.subEng[i%self.pagesize], text=s)
+                self.canvas[index%self.pagesize].after(delay, update_text)
                 delay += delta  
         if self.haveCht == subStatus['HIDEALL'] or self.haveCht == subStatus['SHOWAWORD']:
             subString = self.textCht[index]
             for i in range(len(subString) + 1):
                 s = subString[:i]
-                update_text = lambda s=s: self.canvas[index%6].itemconfigure(self.subCht[i%6], text=s)
-                self.canvas[index%6].after(delay, update_text)
+                update_text = lambda s=s: self.canvas[index%self.pagesize].itemconfigure(self.subCht[i%self.pagesize], text=s)
+                self.canvas[index%self.pagesize].after(delay, update_text)
                 delay += delta 
              
         
@@ -422,8 +444,8 @@ class Subtitle():
             if i >= start and i < start + self.pagesize:
                 #print("i=%d" % i)
                 if i < self.datasize:
-                    self.index[i%6].config(text = self.subs[i].index)
-                    self.duration[i%6].config(
+                    self.index[i%self.pagesize].config(text = self.subs[i].index)
+                    self.duration[i%self.pagesize].config(
                         text = self.__calc_seconds(self.subs[i].duration.hours,
                                                    self.subs[i].duration.minutes,
                                                    self.subs[i].duration.seconds,
@@ -431,20 +453,20 @@ class Subtitle():
                     
                     # english
                     if self.haveEng == subStatus['SHOWALL']:
-                        self.canvas[i%6].itemconfig(self.subEng[i%6], text = self.textEng[i])
+                        self.canvas[i%self.pagesize].itemconfig(self.subEng[i%self.pagesize], text = self.textEng[i])
                     elif self.haveEng == subStatus['HIDEALL']:
-                        self.canvas[i%6].itemconfig(self.subEng[i%6], text = "")
+                        self.canvas[i%self.pagesize].itemconfig(self.subEng[i%self.pagesize], text = "")
                     elif self.haveEng ==  subStatus['SHOWAWORD']:
-                        self.canvas[i%6].itemconfig(self.subEng[i%6], text = self.textEng[i].split(' ')[0])
+                        self.canvas[i%self.pagesize].itemconfig(self.subEng[i%self.pagesize], text = self.textEng[i].split(' ')[0])
                         
                     # chinese    
                     if self.haveCht == subStatus['SHOWALL']:
-                        self.canvas[i%6].itemconfig(self.subCht[i%6], text = self.textCht[i])
+                        self.canvas[i%self.pagesize].itemconfig(self.subCht[i%self.pagesize], text = self.textCht[i])
                     elif self.haveCht == subStatus['HIDEALL']:
-                        self.canvas[i%6].itemconfig(self.subCht[i%6], text = "")
+                        self.canvas[i%self.pagesize].itemconfig(self.subCht[i%self.pagesize], text = "")
                         
                     # bind
-                    self.canvas[i%6].bind("<Button-1>", lambda event, arg=i: self.__wipe_in(event, arg))
+                    self.canvas[i%self.pagesize].bind("<Button-1>", lambda event, arg=i: self.__wipe_in(event, arg))
                     # self.canvas[i%6].tag_bind(self.subEng[i%6], "<Button-1>", 
                     #                           lambda event, 
                     #                           arg=i: self.__eng_wipe_in(event, arg))
@@ -456,10 +478,10 @@ class Subtitle():
                                                 self.subs[i].start.minutes,
                                                 self.subs[i].start.seconds,
                                                 self.subs[i].start.milliseconds)
-                    self.setAB(self.play_btn[i%6], sta, float(self.duration[i%6]['text']))
+                    self.setAB(self.play_btn[i%self.pagesize], sta, float(self.duration[i%self.pagesize]['text']))
                     
                     # install page play button
-                    if i % 6 == 0:
+                    if i % self.pagesize == 0:
                         pageStart = sta
                     end = self.__calc_seconds(self.subs[i].end.hours,
                                                 self.subs[i].end.minutes,
@@ -471,11 +493,11 @@ class Subtitle():
                             command = lambda:self.setABTimer(pageStart, 
                                                              pageDuration))
                 else:
-                    self.index[i%6].config(text = "")
-                    self.duration[i%6].config(text = "")
-                    self.canvas[i%6].itemconfig(self.subEng[i%6], text = "")
-                    self.canvas[i%6].itemconfig(self.subCht[i%6], text = "")
-                    self.play_btn[i%6].configure(state=tk.DISABLED)
+                    self.index[i%self.pagesize].config(text = "")
+                    self.duration[i%self.pagesize].config(text = "")
+                    self.canvas[i%self.pagesize].itemconfig(self.subEng[i%self.pagesize], text = "")
+                    self.canvas[i%self.pagesize].itemconfig(self.subCht[i%self.pagesize], text = "")
+                    self.play_btn[i%self.pagesize].configure(state=tk.DISABLED)
                 row+=2
                 
         labelPage.configure(text = str(self.page+1) + "/" + str(self.totpage))
@@ -583,9 +605,9 @@ def add_srt(toolbar):
             subs = srt.open(file, encoding = "utf-8")
         elif ".ass" in file:
             songfile = file.replace(".ass",".mp3") # 為了找同檔名的mp3檔
-            ass_file = open(file)
+            ass_file = open(file, "r", encoding="utf-8")
             subs123 = asstosrt.convert(ass_file)
-            f = open('temp.srt', 'w')
+            f = open('temp.srt', 'w', encoding="utf-8")
             f.write(subs123)
             f.close()
             subs = srt.open('temp.srt', encoding = "utf-8")
