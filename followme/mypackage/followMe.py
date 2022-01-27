@@ -95,8 +95,8 @@ def window():
     add_srt_menu = tk.Menu(filemenu, tearoff = 0)
     readme_menu = tk.Menu(filemenu, tearoff = 0)
     #add_srt_menu.add_command(label = '開啟檔案...', command = add_srt)
-    add_srt_menu.add_command(label = '開啟檔案...', command = lambda:add_srt(toolbar))
-    add_srt_menu.add_command(label = '開啟連接...', command = open_yt)
+    add_srt_menu.add_command(label = '開啟字幕...', command = lambda:add_srt(toolbar))
+    # add_srt_menu.add_command(label = '開啟連接...', command = open_yt)
     add_srt_menu.add_command(label = '離開程式', command = close_window)
     readme_menu.add_command(label = '資訊', command = readme)
     filemenu.add_cascade(label = "檔案", menu = add_srt_menu)
@@ -124,10 +124,10 @@ class Toolbar():
         self.btnEng = tk.Button(frameToolbar, text="英", width=3, state=tk.DISABLED)
         self.btnCht = tk.Button(frameToolbar, text="中", width=3, state=tk.DISABLED)
         self.cbb = ttk.Combobox(frameToolbar, width = 6)
-        self.cbbRow = ttk.Combobox(frameToolbar, width = 8)
+        # self.cbbRow = ttk.Combobox(frameToolbar, width = 8)
         self.lbl1 = tk.Label(frameToolbar, text=" ", width=3)
-        self.btn1 = tk.Button(frameToolbar, text="翻", width=3, state=tk.DISABLED)
-        self.btn2 = tk.Button(frameToolbar, text="譯", width=3, state=tk.DISABLED)
+        self.btn1 = tk.Button(frameToolbar, text="讀", width=3, state=tk.DISABLED)
+        self.btn2 = tk.Button(frameToolbar, text="寫", width=3, state=tk.DISABLED)
         self.btn3 = tk.Button(frameToolbar, text="憶", width=3, state=tk.DISABLED)
         self.btn4 = tk.Button(frameToolbar, text="說", width=3, state=tk.DISABLED)
         self.btn5 = tk.Button(frameToolbar, text="聽", width=3, state=tk.DISABLED)
@@ -142,9 +142,9 @@ class Toolbar():
         self.btnCht.grid(row=0, column=6, padx=2, pady=2)
         self.cbb.grid(row=0, column=7, padx=2, pady=2)
         self.cbb.set("page")
-        self.cbbRow.grid(row=0, column=8, padx=2, pady=2)
-        self.cbbRow.set("一頁幾句")
-        self.cbbRow["values"] = ['6', '7', '8']
+        # self.cbbRow.grid(row=0, column=8, padx=2, pady=2)
+        # self.cbbRow.set("一頁幾句")
+        # self.cbbRow["values"] = ['6', '7', '8']
         self.lbl1.grid(row=0, column=9, padx=2, pady=2)
         self.btn1.grid(row=0, column=10, padx=2, pady=2)
         self.btn2.grid(row=0, column=11, padx=2, pady=2)
@@ -186,8 +186,8 @@ class Toolbar():
         self.cbb["values"] = self.pageList
         self.cbb.bind("<<ComboboxSelected>>", subtitles.Assign)
         
-    def setComboBoxRow(self, subtitles):
-        self.cbbRow.bind("<<ComboboxSelected>>", subtitles.ChgRow)
+    # def setComboBoxRow(self, subtitles):
+        # self.cbbRow.bind("<<ComboboxSelected>>", subtitles.ChgRow)
 
     def changeSubsStatus(self, lesson, subs):
         if lesson == 1:
@@ -513,6 +513,7 @@ class Subtitle():
                     self.duration[i%self.pagesize].config(text = "")
                     self.canvas[i%self.pagesize].itemconfig(self.subEng[i%self.pagesize], text = "")
                     self.canvas[i%self.pagesize].itemconfig(self.subCht[i%self.pagesize], text = "")
+                    self.canvas[i%self.pagesize].unbind("<Button-1>")
                     self.play_btn[i%self.pagesize].configure(state=tk.DISABLED)
                 row+=2
                 
@@ -546,8 +547,9 @@ class Subtitle():
         self.page = int(page) - 1
         self.refresh_page()
      
-    def ChgRow(self, event):  
-        self.pagesize =  int(event.widget.get())
+    def ChgRow(self, event): 
+        pass
+        # self.pagesize =  int(event.widget.get())
         # print(self.pagesize)
         # window()
      
@@ -642,7 +644,7 @@ def createObj(songfile):
     subtitles.First()
     toolbar.setLangBtn(subtitles)
     toolbar.setComboBoxPage(subtitles)
-    toolbar.setComboBoxRow(subtitles)
+    # toolbar.setComboBoxRow(subtitles)
     toolbar.setLessonFlow(subtitles)
         
     if os.path.isfile(songfile) == False:
@@ -653,7 +655,7 @@ def createObj(songfile):
     
     
 def readme():
-    tkinter.messagebox.showinfo("About Caption Player", "Caption Player \nV0.3")
+    tkinter.messagebox.showinfo("About Caption Player", "Caption Player \nV0.4")
 
 
 def close_window():
