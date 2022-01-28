@@ -20,6 +20,9 @@ import threading
 # from moviepy import editor as mv
 from os import remove
 import asstosrt
+from gtts import gTTS
+import tempfile
+import socket
 
 global song
 
@@ -237,11 +240,13 @@ class Toolbar():
         self.btnC.config(command = lambda:self.clearLessonColor(subs), state=tk.NORMAL)
         
     def setLangBtn(self, subtitles):
+        self.btnEng.config(state=tk.DISABLED)
+        self.btnCht.config(state=tk.DISABLED)
         #self.btnGPlay.config(command = subtitles.play, state=tk.NORMAL)
         if subtitles.haveEng == 1 or subtitles.haveEng == 2:
             self.btnEng.config(state=tk.NORMAL,
                                 command = lambda:self.toggleEngBtn(subtitles))
-        if subtitles.haveCht == 1 or subtitles.haveCht == 2:
+        if subtitles.have2subs == True:
             self.btnCht.config(state=tk.NORMAL, 
                                command = lambda:self.toggleChtBtn(subtitles))
     
@@ -311,6 +316,7 @@ class Subtitle():
         self.empty = []
         self.duration = []
         self.play_btn= []
+        self.play_btnC = []
         self.canvas = []
         self.subText = []
         self.subEng = [] # table
@@ -321,6 +327,7 @@ class Subtitle():
         self.subStart = []
         self.haveEng = subStatus['NONE']
         self.haveCht = subStatus['NONE']
+        self.have2subs = False
         for row in range(self.pagesize + 1):
             if row == 0:
                 tt_empty = tk.Label(frameShow, text = "\t", font = ("Calibri", 1))
@@ -369,6 +376,11 @@ class Subtitle():
                                                 width = 3, 
                                                 font = ("Calibri",10),
                                                 state=tk.DISABLED))
+                self.play_btnC.append(tk.Button(self.frameSentence[row], 
+                                                text = "㊥", 
+                                                width = 3, 
+                                                font = ("Calibri",10),
+                                                state=tk.DISABLED))
                 self.canvas.append(tk.Canvas(self.frameSentence[row], width = 840, height = 51))
                                              #relief = 'ridge', borderwidth = 1))
                 
@@ -383,7 +395,8 @@ class Subtitle():
                 
                 self.index[row-1].grid(row = 0, column = 0, rowspan = 2)
                 self.duration[row-1].grid(row = 0, column = 1, rowspan = 2)
-                self.play_btn[row-1].grid(row = 0, column = 2, sticky="wn")
+                self.play_btn[row-1].grid(row = 0, column = 2, sticky="w")
+                self.play_btnC[row-1].grid(row = 1, column = 2, sticky="w")
                 self.canvas[row-1].grid(row = 0, column = 3, sticky="w", rowspan = 2)
 
             tt_empty.pack()
@@ -404,6 +417,7 @@ class Subtitle():
         for sub in subs:
             # print(sub.index)
             if "\n" in sub.text:
+                self.have2subs = True
                 subText = sub.text.split("\n")
                 # print(subText[0])
                 # print(subText[1])
@@ -454,6 +468,7 @@ class Subtitle():
         
     def refresh_page(self):
         row = 1
+        pageEng = ""
         # print("refresh_page %d" % self.pagesize)
         start = self.page * self.pagesize
         for i in range(0, self.totfield):
@@ -490,24 +505,37 @@ class Subtitle():
                     #                           lambda event, 
                     #                           arg=i: self.__cht_wipe_in(event, arg))
                     
+                    # english sentence button
                     sta = self.__calc_seconds(self.subs[i].start.hours,
                                                 self.subs[i].start.minutes,
                                                 self.subs[i].start.seconds,
                                                 self.subs[i].start.milliseconds)
-                    self.setAB(self.play_btn[i%self.pagesize], sta, float(self.duration[i%self.pagesize]['text']))
+                    if os.path.isfile(song.song):
+                        self.setAB(self.play_btn[i%self.pagesize], sta, float(self.duration[i%self.pagesize]['text']))
+                        # install page play button
+                        if i % self.pagesize == 0:
+                            pageStart = sta
+                        end = self.__calc_seconds(self.subs[i].end.hours,
+                                                    self.subs[i].end.minutes,
+                                                    self.subs[i].end.seconds,
+                                                    self.subs[i].end.milliseconds)
+                        pageDuration = end - pageStart
+                        #print(pageDuration)
+                        self.tt_play_btn.configure(state=tk.NORMAL, 
+                                command = lambda:self.setABTimer(pageStart, 
+                                                                 pageDuration))
+                    else:
+                        self.setTts(self.play_btn[i%self.pagesize], self.textEng[i], 'en')
+                        pageEng += self.textEng[i]
+                        self.tt_play_btn.configure(state=tk.NORMAL, 
+                                command = lambda:self.speak(pageEng, 'en'))
+                   
                     
-                    # install page play button
-                    if i % self.pagesize == 0:
-                        pageStart = sta
-                    end = self.__calc_seconds(self.subs[i].end.hours,
-                                                self.subs[i].end.minutes,
-                                                self.subs[i].end.seconds,
-                                                self.subs[i].end.milliseconds)
-                    pageDuration = end - pageStart
-                    #print(pageDuration)
-                    self.tt_play_btn.configure(state=tk.NORMAL, 
-                            command = lambda:self.setABTimer(pageStart, 
-                                                             pageDuration))
+                   # chinese sentence button
+                    if self.have2subs:
+                        if is_net_connected("www.google.com"):
+                            self.setTts(self.play_btnC[i%self.pagesize], self.textCht[i], 'zh')
+                    
                 else:
                     self.index[i%self.pagesize].config(text = "")
                     self.duration[i%self.pagesize].config(text = "")
@@ -515,6 +543,7 @@ class Subtitle():
                     self.canvas[i%self.pagesize].itemconfig(self.subCht[i%self.pagesize], text = "")
                     self.canvas[i%self.pagesize].unbind("<Button-1>")
                     self.play_btn[i%self.pagesize].configure(state=tk.DISABLED)
+                    self.play_btnC[i%self.pagesize].configure(state=tk.DISABLED)
                 row+=2
                 
         labelPage.configure(text = str(self.page+1) + "/" + str(self.totpage))
@@ -572,6 +601,24 @@ class Subtitle():
         self.playAB(start, duration)
         song.cancelTimer()
         song.newSongTimer(duration)
+        
+    def setTts(self, btn, sentence, lang):
+        btn.configure(command = lambda:self.speak(sentence, lang), state=tk.NORMAL)
+        
+    def speak(self, sentence, lang, loops=1):
+        try:
+            song
+        except NameError:
+            pass
+        else:
+            song.cancelTimer()
+            
+            with tempfile.NamedTemporaryFile(delete=True) as fp:
+                tts=gTTS(text=sentence, lang=lang)
+                tts.save('{}.mp3'.format(fp.name))
+                pyg.mixer.init()
+                pyg.mixer.music.load('{}.mp3'.format(fp.name))
+                pyg.mixer.music.play()
      
 
 class Song():
@@ -646,11 +693,11 @@ def createObj(songfile):
     toolbar.setComboBoxPage(subtitles)
     # toolbar.setComboBoxRow(subtitles)
     toolbar.setLessonFlow(subtitles)
+    toolbar.setPageBtnEn()
         
     if os.path.isfile(songfile) == False:
         tkinter.messagebox.showwarning("warning", "沒有對應的mp3")
     else:
-        toolbar.setPageBtnEn()
         toolbar.setSongCmd(song)
     
     
@@ -700,6 +747,19 @@ def open_yt():
     #         remove(filename)
     #     tk.messagebox.showinfo("info", "下載完成")
 
+def is_net_connected(hostname):
+  try:
+    # see if we can resolve the host name -- tells us if there is
+    # a DNS listening
+    host = socket.gethostbyname(hostname)
+    # connect to the host -- tells us if the host is actually
+    # reachable
+    s = socket.create_connection((host, 80), 2)
+    s.close()
+    return True
+  except:
+     pass
+  return False
     
 if __name__ == '__main__':
     window()
