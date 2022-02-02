@@ -23,6 +23,9 @@ import asstosrt
 from gtts import gTTS
 import tempfile
 import socket
+from pydub import AudioSegment
+import soundfile as sf
+import pyrubberband as pyrb
 
 global song
 
@@ -128,6 +131,12 @@ class Toolbar():
         self.btnCht = tk.Button(frameToolbar, text="中", width=3, state=tk.DISABLED)
         self.cbb = ttk.Combobox(frameToolbar, width = 6)
         # self.cbbRow = ttk.Combobox(frameToolbar, width = 8)
+        self.btnSpdUp = tk.Button(frameToolbar, text="+", width=3, state=tk.NORMAL, command = lambda:self.speedChg(0))
+        self.currentSpeed = tk.DoubleVar()
+        self.currentSpeed.set(1.0)
+        self.lblSpd = tk.Label(frameToolbar, textvariable=self.currentSpeed, width=4)
+        self.btnSpdDn = tk.Button(frameToolbar, text="-", width=3, state=tk.NORMAL, command = lambda:self.speedChg(1))
+        self.lbl0 = tk.Label(frameToolbar, text=" ", width=3)
         self.lbl1 = tk.Label(frameToolbar, text=" ", width=3)
         self.btn1 = tk.Button(frameToolbar, text="讀", width=3, state=tk.DISABLED)
         self.btn2 = tk.Button(frameToolbar, text="寫", width=3, state=tk.DISABLED)
@@ -141,21 +150,27 @@ class Toolbar():
         self.btnNext.grid(row=0, column=2, padx=2, pady=2)
         self.btnBottom.grid(row=0, column=3, padx=2, pady=2) 
         self.btnGPlay.grid(row=0, column=4, padx=2, pady=2)
-        self.btnEng.grid(row=0, column=5, padx=2, pady=2)
-        self.btnCht.grid(row=0, column=6, padx=2, pady=2)
-        self.cbb.grid(row=0, column=7, padx=2, pady=2)
+        self.btnSpdUp.grid(row=0, column=5, padx=2, pady=2)
+        self.lblSpd.grid(row=0, column=6, padx=2, pady=2)
+        self.btnSpdDn.grid(row=0, column=7, padx=2, pady=2)
+        
+        self.lbl0.grid(row=0, column=8, padx=2, pady=2)
+        self.btnEng.grid(row=0, column=9, padx=2, pady=2)
+        self.btnCht.grid(row=0, column=10, padx=2, pady=2)
+        self.cbb.grid(row=0, column=11, padx=2, pady=2)
         self.cbb.set("page")
         # self.cbbRow.grid(row=0, column=8, padx=2, pady=2)
         # self.cbbRow.set("一頁幾句")
         # self.cbbRow["values"] = ['6', '7', '8']
-        self.lbl1.grid(row=0, column=9, padx=2, pady=2)
-        self.btn1.grid(row=0, column=10, padx=2, pady=2)
-        self.btn2.grid(row=0, column=11, padx=2, pady=2)
-        self.btn3.grid(row=0, column=12, padx=2, pady=2)
-        self.btn4.grid(row=0, column=13, padx=2, pady=2)
-        self.btn5.grid(row=0, column=14, padx=2, pady=2)
-        self.btn6.grid(row=0, column=15, padx=2, pady=2)
-        self.btnC.grid(row=0, column=16, padx=2, pady=2)
+
+        self.lbl1.grid(row=0, column=12, padx=2, pady=2)
+        self.btn1.grid(row=0, column=13, padx=2, pady=2)
+        self.btn2.grid(row=0, column=14, padx=2, pady=2)
+        self.btn3.grid(row=0, column=15, padx=2, pady=2)
+        self.btn4.grid(row=0, column=16, padx=2, pady=2)
+        self.btn5.grid(row=0, column=17, padx=2, pady=2)
+        self.btn6.grid(row=0, column=18, padx=2, pady=2)
+        self.btnC.grid(row=0, column=19, padx=2, pady=2)
         
     def setSubsCmd(self, subtitles):
         self.btnFirst.config(command = subtitles.First)
@@ -299,8 +314,17 @@ class Toolbar():
                 pyg.mixer.music.pause()
                 song.setSongStatus(songStatus['PAUSE'])
 
+    def speedChg(self, dir):
+        if dir == 0:
+            if self.currentSpeed.get() < 1.5:
+                self.currentSpeed.set(round(self.currentSpeed.get() + 0.1, 2))
+        elif dir == 1:
+            if self.currentSpeed.get() > 0.5:
+                self.currentSpeed.set(round(self.currentSpeed.get() - 0.1, 2))
+            
+
 class Subtitle():
-    global frameShow, labelPage, song
+    global frameShow, labelPage, song, toolbar
     def __init__(self, pagesize):
         self.row = 0
         self.start = 0
@@ -553,6 +577,9 @@ class Subtitle():
         # print("%d-%d-%d-%f" % (hour, min, sec, mili))
         return round(hour*3600 + min*60+sec+mili/1000, 2)
     
+    def __calc_milisecs(self, sec):
+        return round(sec*1000, 0)
+    
     def First(self):  # 首頁
         self.page = 0
         self.refresh_page()
@@ -598,9 +625,15 @@ class Subtitle():
         song.setSongStatus(songStatus['PLAYING'])
 
     def setABTimer(self, start, duration):
-        self.playAB(start, duration)
-        song.cancelTimer()
-        song.newSongTimer(duration)
+        if toolbar.currentSpeed.get() == 1.0:
+            self.playAB(start, duration)
+            song.cancelTimer()
+            song.newSongTimer(duration)
+        else:
+            factor = toolbar.currentSpeed.get()
+            # print(factor)
+            t = threading.Thread(target = self.playABwSpd, args = (start, duration, factor))
+            t.start()
         
     def setTts(self, btn, sentence, lang):
         btn.configure(command = lambda:self.speak(sentence, lang), state=tk.NORMAL)
@@ -619,7 +652,31 @@ class Subtitle():
                 pyg.mixer.init()
                 pyg.mixer.music.load('{}.mp3'.format(fp.name))
                 pyg.mixer.music.play()
-     
+            
+    def playABwSpd(self, start, duration, factor):
+        # print(start)
+        # print(duration)
+        # print(self.__calc_milisecs(start))
+        # print(self.__calc_milisecs(start+duration))
+        try:
+            song
+        except NameError:
+            pass
+        else:
+            song.cancelTimer()        
+        
+            sound = AudioSegment.from_mp3(song.getSong()) 
+            sound = sound[self.__calc_milisecs(start):self.__calc_milisecs(start+duration)]
+            with tempfile.NamedTemporaryFile(delete=True) as fp:
+                sound.export('{}.wav'.format(fp.name), format="wav")       
+                y, sr = sf.read('{}.wav'.format(fp.name))
+                y_stretch = pyrb.time_stretch(y, sr, factor)
+                sf.write('{}.wav'.format(fp.name), y_stretch, sr, format='wav')
+                pyg.mixer.init()
+                pyg.mixer.music.unload()
+                pyg.mixer.music.load('{}.wav'.format(fp.name))
+                pyg.mixer.music.play()
+            
 
 class Song():
     def __init__(self, song):
