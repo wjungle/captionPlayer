@@ -23,9 +23,8 @@ import asstosrt
 from gtts import gTTS
 import tempfile
 import socket
-from pydub import AudioSegment
-import soundfile as sf
-import pyrubberband as pyrb
+import subprocess
+import signal
 
 global song
 
@@ -652,7 +651,7 @@ class Subtitle():
                 pyg.mixer.init()
                 pyg.mixer.music.load('{}.mp3'.format(fp.name))
                 pyg.mixer.music.play()
-            
+    
     def playABwSpd(self, start, duration, factor):
         # print(start)
         # print(duration)
@@ -665,18 +664,17 @@ class Subtitle():
         else:
             song.cancelTimer()        
         
-            sound = AudioSegment.from_mp3(song.getSong()) 
-            sound = sound[self.__calc_milisecs(start):self.__calc_milisecs(start+duration)]
-            with tempfile.NamedTemporaryFile(delete=True) as fp:
-                sound.export('{}.wav'.format(fp.name), format="wav")       
-                y, sr = sf.read('{}.wav'.format(fp.name))
-                y_stretch = pyrb.time_stretch(y, sr, factor)
-                sf.write('{}.wav'.format(fp.name), y_stretch, sr, format='wav')
-                pyg.mixer.init()
-                pyg.mixer.music.unload()
-                pyg.mixer.music.load('{}.wav'.format(fp.name))
-                pyg.mixer.music.play()
-            
+            subprocess.call(['taskkill', '/F', '/im', 'ffplay.exe'])
+            cmd = 'ffplay -ss {} -t {} -af atempo={} -i {}  -loglevel quiet -showmode 0' .format(start, duration, factor, song.getSong())
+            proc = subprocess.Popen(cmd, shell=True,
+                               # stdin=subprocess.PIPE,
+                               stdout=subprocess.DEVNULL)
+                               # stderr=subprocess.DEVNULL) 
+            kill_proc = lambda p: subprocess.call(['taskkill', '/F', '/T', '/PID',  str(p.pid)])
+            # kill_proc = lambda p: print(p.pid)
+            timer = threading.Timer(duration/factor, kill_proc, [proc])
+            timer.start()
+
 
 class Song():
     def __init__(self, song):
@@ -759,7 +757,7 @@ def createObj(songfile):
     
     
 def readme():
-    tkinter.messagebox.showinfo("About Caption Player", "Caption Player \nV0.4")
+    tkinter.messagebox.showinfo("About Caption Player", "Caption Player \nV0.5")
 
 
 def close_window():
