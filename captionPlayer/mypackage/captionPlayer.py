@@ -663,14 +663,15 @@ class Subtitle():
             pass
         else:
             song.cancelTimer()        
-        
-            subprocess.call(['taskkill', '/F', '/im', 'ffplay.exe'])
-            cmd = 'ffplay -ss {} -t {} -af atempo={} -i {}  -loglevel quiet -showmode 0' .format(start, duration, factor, song.getSong())
+            si = subprocess.STARTUPINFO()
+            si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            subprocess.call(['taskkill', '/F', '/im', 'ffplay.exe'], startupinfo=si)
+            cmd = 'ffplay -ss {} -t {} -af atempo={} -i {}  -loglevel quiet -showmode 0 -hide_banner' .format(start, duration, factor, song.getSong())
             proc = subprocess.Popen(cmd, shell=True,
-                               # stdin=subprocess.PIPE,
-                               stdout=subprocess.DEVNULL)
-                               # stderr=subprocess.DEVNULL) 
-            kill_proc = lambda p: subprocess.call(['taskkill', '/F', '/T', '/PID',  str(p.pid)])
+                               stdin=subprocess.PIPE,
+                               stdout=subprocess.DEVNULL,
+                               stderr=subprocess.DEVNULL) 
+            kill_proc = lambda p: subprocess.call(['taskkill', '/F', '/T', '/PID',  str(p.pid)], startupinfo=si)
             # kill_proc = lambda p: print(p.pid)
             timer = threading.Timer(duration/factor, kill_proc, [proc])
             timer.start()
