@@ -21,11 +21,13 @@ import threading
 from os import remove
 import asstosrt
 from gtts import gTTS
+import azure.cognitiveservices.speech as speechsdk
 import tempfile
 import socket
 import subprocess
 
 global song
+speech_key, service_region = "6f78f9cc7a61422f88f7aa0d5d67665c", "eastasia"
 
 songStatus = {
     'INIT' : 0,
@@ -644,15 +646,42 @@ class Subtitle():
         except NameError:
             print("no song path")
         else:
+            song.stop()
             song.cancelTimer()
             self.killFfplay()
-            with tempfile.NamedTemporaryFile(delete=True) as fp:
-                tts=gTTS(text=sentence, lang=lang)
-                tts.save('{}.mp3'.format(fp.name))
-                pyg.mixer.init()
-                pyg.mixer.music.load('{}.mp3'.format(fp.name))
-                pyg.mixer.music.play()
+            # t = threading.Thread(target = self.msTts, args = (sentence, lang))
+            # t.start()
+            self.ggTts(sentence, lang)
     
+    def ggTts(self, sentence, lang):
+        with tempfile.NamedTemporaryFile(delete=True) as fp:
+            tts=gTTS(text=sentence, lang=lang) #, slow=True
+            tts.save('{}.mp3'.format(fp.name))
+            pyg.mixer.init()
+            pyg.mixer.music.load('{}.mp3'.format(fp.name))
+            pyg.mixer.music.play()
+
+    def msTts(self, sentence, lang):     
+        if lang == 'en':
+            lang = 'en-US'
+        elif lang == 'zh':
+            lang = 'zh-TW'
+        speech_config = speechsdk.SpeechConfig(subscription=speech_key, region=service_region)
+        speech_config.speech_synthesis_language = lang
+        speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config = speech_config)
+        result = speech_synthesizer.speak_text_async(sentence).get()
+    
+        # Checks result.
+        if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+            pass
+        elif result.reason == speechsdk.ResultReason.Canceled:
+            cancellation_details = result.cancellation_details
+            print("Speech synthesis canceled: {}".format(cancellation_details.reason))
+            if cancellation_details.reason == speechsdk.CancellationReason.Error:
+                if cancellation_details.error_details:
+                    print("Error details: {}".format(cancellation_details.error_details))
+            print("Did you update the subscription info?")
+
     def playABwSpd(self, start, duration, factor):
         # print(start)
         # print(duration)
@@ -763,7 +792,7 @@ def readme():
 
 
 def close_window():
-    global song
+    global song, subtitles
     print("close_window")
     if os.path.exists('temp.srt'):
         remove('temp.srt')
@@ -775,6 +804,7 @@ def close_window():
         if song.getSongStatus() == songStatus['PLAYING']:
             song.stop()
             song.closeSong()
+    subtitles.killFfplay()        
     win.destroy()
     
 def open_yt():
