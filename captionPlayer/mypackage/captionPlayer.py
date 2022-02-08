@@ -24,7 +24,6 @@ from gtts import gTTS
 import tempfile
 import socket
 import subprocess
-import signal
 
 global song
 
@@ -351,6 +350,8 @@ class Subtitle():
         self.haveEng = subStatus['NONE']
         self.haveCht = subStatus['NONE']
         self.have2subs = False
+        self.si = subprocess.STARTUPINFO()
+        self.si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
         for row in range(self.pagesize + 1):
             if row == 0:
                 tt_empty = tk.Label(frameShow, text = "\t", font = ("Calibri", 1))
@@ -617,10 +618,10 @@ class Subtitle():
         btn.configure(command = lambda:self.setABTimer(start, duration), state=tk.NORMAL)
 
     def playAB(self, start, duration):
+        self.killFfplay()
         pyg.mixer.music.unload()
         pyg.mixer.music.load(song.getSong())
         pyg.mixer.music.play(loops=0, start = start)
-        #print("helloworld %f - %f" % (start, duration))
         song.setSongStatus(songStatus['PLAYING'])
 
     def setABTimer(self, start, duration):
@@ -641,10 +642,10 @@ class Subtitle():
         try:
             song
         except NameError:
-            pass
+            print("no song path")
         else:
             song.cancelTimer()
-            
+            self.killFfplay()
             with tempfile.NamedTemporaryFile(delete=True) as fp:
                 tts=gTTS(text=sentence, lang=lang)
                 tts.save('{}.mp3'.format(fp.name))
@@ -660,21 +661,21 @@ class Subtitle():
         try:
             song
         except NameError:
-            pass
+            print("no song path")
         else:
-            song.cancelTimer()        
-            si = subprocess.STARTUPINFO()
-            si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            subprocess.call(['taskkill', '/F', '/im', 'ffplay.exe'], startupinfo=si)
-            cmd = 'ffplay -ss {} -t {} -af atempo={} -i {}  -loglevel quiet -showmode 0 -hide_banner' .format(start, duration, factor, song.getSong())
+            song.stop()        
+            self.killFfplay()
+            cmd = 'ffplay -ss {} -t {} -af atempo={} -i "{}"  -loglevel quiet -showmode 0 -hide_banner' .format(start, duration, factor, song.getSong())
             proc = subprocess.Popen(cmd, shell=True,
                                stdin=subprocess.PIPE,
                                stdout=subprocess.DEVNULL,
                                stderr=subprocess.DEVNULL) 
-            kill_proc = lambda p: subprocess.call(['taskkill', '/F', '/T', '/PID',  str(p.pid)], startupinfo=si)
-            # kill_proc = lambda p: print(p.pid)
+            kill_proc = lambda p: subprocess.call(['taskkill', '/F', '/T', '/PID',  str(p.pid)], startupinfo=self.si)
             timer = threading.Timer(duration/factor, kill_proc, [proc])
             timer.start()
+
+    def killFfplay(self):
+        subprocess.call(['taskkill', '/F', '/im', 'ffplay.exe'], startupinfo=self.si)
 
 
 class Song():
