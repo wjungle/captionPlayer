@@ -27,7 +27,7 @@ import socket
 import subprocess
 
 global song
-speech_key, service_region = "6f78f9cc7a61422f88f7aa0d5d67665c", "eastasia"
+speech_key, service_region = "", "eastasia"
 
 songStatus = {
     'INIT' : 0,
@@ -138,6 +138,7 @@ class Toolbar():
         self.btnSpdDn = tk.Button(frameToolbar, text="-", width=3, state=tk.NORMAL, command = lambda:self.speedChg(1))
         self.lbl0 = tk.Label(frameToolbar, text=" ", width=3)
         self.lbl1 = tk.Label(frameToolbar, text=" ", width=3)
+        self.lbl2 = tk.Label(frameToolbar, text=" ", width=3)
         self.btn1 = tk.Button(frameToolbar, text="讀", width=3, state=tk.DISABLED)
         self.btn2 = tk.Button(frameToolbar, text="寫", width=3, state=tk.DISABLED)
         self.btn3 = tk.Button(frameToolbar, text="憶", width=3, state=tk.DISABLED)
@@ -145,6 +146,7 @@ class Toolbar():
         self.btn5 = tk.Button(frameToolbar, text="聽", width=3, state=tk.DISABLED)
         self.btn6 = tk.Button(frameToolbar, text="複", width=3, state=tk.DISABLED)
         self.btnC = tk.Button(frameToolbar, text="清", width=3, state=tk.DISABLED)
+        self.cbbTts = ttk.Combobox(frameToolbar, width = 5)
         self.btnFirst.grid(row=0, column=0, padx=2, pady=2)
         self.btnPrev.grid(row=0, column=1, padx=2, pady=2)
         self.btnNext.grid(row=0, column=2, padx=2, pady=2)
@@ -171,6 +173,11 @@ class Toolbar():
         self.btn5.grid(row=0, column=17, padx=2, pady=2)
         self.btn6.grid(row=0, column=18, padx=2, pady=2)
         self.btnC.grid(row=0, column=19, padx=2, pady=2)
+        
+        self.lbl2.grid(row=0, column=20, padx=2, pady=2)
+        self.cbbTts.grid(row=0, column=21, padx=2, pady=2)
+        self.cbbTts.set("tts")
+        self.cbbTts["values"] = ['谷哥', '微軟']
         
     def setSubsCmd(self, subtitles):
         self.btnFirst.config(command = subtitles.First)
@@ -203,6 +210,9 @@ class Toolbar():
             self.pageList.append(str(i + 1))
         self.cbb["values"] = self.pageList
         self.cbb.bind("<<ComboboxSelected>>", subtitles.Assign)
+        
+    def setComboBoxTts(self, subtitles):
+        self.cbbTts.bind("<<ComboboxSelected>>", subtitles.SelTts)
         
     # def setComboBoxRow(self, subtitles):
         # self.cbbRow.bind("<<ComboboxSelected>>", subtitles.ChgRow)
@@ -354,6 +364,7 @@ class Subtitle():
         self.have2subs = False
         self.si = subprocess.STARTUPINFO()
         self.si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        self.ttsType = 0
         for row in range(self.pagesize + 1):
             if row == 0:
                 tt_empty = tk.Label(frameShow, text = "\t", font = ("Calibri", 1))
@@ -604,6 +615,12 @@ class Subtitle():
         page = event.widget.get()
         self.page = int(page) - 1
         self.refresh_page()
+        
+    def SelTts(self, event):
+        if event.widget.get() == '谷哥':
+            self.ttsType = 0
+        else:
+            self.ttsType = 1
      
     def ChgRow(self, event): 
         pass
@@ -649,9 +666,11 @@ class Subtitle():
             song.stop()
             song.cancelTimer()
             self.killFfplay()
-            # t = threading.Thread(target = self.msTts, args = (sentence, lang))
-            # t.start()
-            self.ggTts(sentence, lang)
+            if self.ttsType == 1:
+                t = threading.Thread(target = self.msTts, args = (sentence, lang))
+                t.start()
+            elif self.ttsType == 0:
+                self.ggTts(sentence, lang)
     
     def ggTts(self, sentence, lang):
         with tempfile.NamedTemporaryFile(delete=True) as fp:
@@ -777,6 +796,7 @@ def createObj(songfile):
     subtitles.First()
     toolbar.setLangBtn(subtitles)
     toolbar.setComboBoxPage(subtitles)
+    toolbar.setComboBoxTts(subtitles)
     # toolbar.setComboBoxRow(subtitles)
     toolbar.setLessonFlow(subtitles)
     toolbar.setPageBtnEn()
@@ -788,7 +808,7 @@ def createObj(songfile):
     
     
 def readme():
-    tkinter.messagebox.showinfo("About Caption Player", "Caption Player \nV0.5")
+    tkinter.messagebox.showinfo("About Caption Player", "Caption Player \nV0.6")
 
 
 def close_window():
