@@ -27,7 +27,7 @@ import socket
 import subprocess
 
 global song
-speech_key, service_region = "6f78f9cc7a61422f88f7aa0d5d67665c", "eastasia"
+speech_key, service_region = "", "eastasia"
 
 songStatus = {
     'INIT' : 0,
@@ -514,6 +514,7 @@ class Subtitle():
         
     def refresh_page(self):
         row = 1
+        self.numSentPage = 0
         # print("refresh_page %d" % self.pagesize)
         start = self.page * self.pagesize
         for i in range(0, self.totfield):
@@ -568,7 +569,7 @@ class Subtitle():
                     self.play_btnC[i%self.pagesize].configure(state=tk.DISABLED)
                 row+=2
                 
-        # print("%d, %d" % (start,numSentPage))        
+        # print("%d, %d" % (start, self.numSentPage))        
         self.intall_pageBtn(start, self.numSentPage)
         labelPage.configure(text = str(self.page+1) + "/" + str(self.totpage))
         
@@ -648,7 +649,7 @@ class Subtitle():
         # self.refresh_page()
         # print(self.page * self.pagesize)
         start = self.page * self.pagesize
-        for i in range(start, start + self.pagesize - 1):
+        for i in range(start, start + self.numSentPage):
             self.install_btn(i)  
         self.intall_pageBtn(start, self.numSentPage)
         
