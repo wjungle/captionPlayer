@@ -373,6 +373,7 @@ class Subtitle():
         self.si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
         self.ttsType = 0
         self.haveMP3 = 0
+        self.numSentPage = 0
         for row in range(self.pagesize + 1):
             if row == 0:
                 tt_empty = tk.Label(frameShow, text = "\t", font = ("Calibri", 1))
@@ -513,8 +514,6 @@ class Subtitle():
         
     def refresh_page(self):
         row = 1
-        numSentPage = 0
-        # pageEng = ""
         # print("refresh_page %d" % self.pagesize)
         start = self.page * self.pagesize
         for i in range(0, self.totfield):
@@ -552,7 +551,7 @@ class Subtitle():
                     #                           arg=i: self.__cht_wipe_in(event, arg))
                     
                     self.install_btn(i)
-                    numSentPage+=1
+                    self.numSentPage+=1
                     
                    # chinese sentence button
                     if self.have2subs:
@@ -570,7 +569,7 @@ class Subtitle():
                 row+=2
                 
         # print("%d, %d" % (start,numSentPage))        
-        self.intall_pageBtn(start, numSentPage)
+        self.intall_pageBtn(start, self.numSentPage)
         labelPage.configure(text = str(self.page+1) + "/" + str(self.totpage))
         
     def install_btn(self, i):
@@ -650,7 +649,8 @@ class Subtitle():
         # print(self.page * self.pagesize)
         start = self.page * self.pagesize
         for i in range(start, start + self.pagesize - 1):
-            self.install_btn(i)    
+            self.install_btn(i)  
+        self.intall_pageBtn(start, self.numSentPage)
         
     def ChgRow(self, event): 
         pass
