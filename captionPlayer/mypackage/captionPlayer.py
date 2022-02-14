@@ -103,6 +103,8 @@ def window():
     #add_srt_menu.add_command(label = '開啟檔案...', command = add_srt)
     add_srt_menu.add_command(label = '開啟字幕...', command = lambda:add_srt(toolbar))
     # add_srt_menu.add_command(label = '開啟連接...', command = open_yt)
+    add_srt_menu.add_command(label = '開啟谷哥金鑰...', command = lambda:add_key(toolbar, add_srt_menu))
+    # add_srt_menu.add_command(label = '翻譯字幕', command = lambda:trans_srt(subtitles, toolbar))
     add_srt_menu.add_command(label = '離開程式', command = close_window)
     readme_menu.add_command(label = '資訊', command = readme)
     filemenu.add_cascade(label = "檔案", menu = add_srt_menu)
@@ -270,6 +272,11 @@ class Toolbar():
         self.btn5.config(command = lambda:self.changeSubsStatus(5, subs), state=tk.NORMAL)
         self.btn6.config(command = lambda:self.changeSubsStatus(6, subs), state=tk.NORMAL)
         self.btnC.config(command = lambda:self.clearLessonColor(subs), state=tk.NORMAL)
+
+    def resetLangBtn(self, subtitles):
+        subtitles.have2subs = True
+        subtitles.haveCht = subStatus['HIDEALL']
+        self.setLangBtn(subtitles)
         
     def setLangBtn(self, subtitles):
         self.btnEng.config(state=tk.DISABLED)
@@ -295,6 +302,7 @@ class Toolbar():
         subs.refresh_page()
             
     def toggleChtBtn(self, subs):
+        # print(f'{subs.haveCht}- toggleChtBtn')
         if subs.haveCht == subStatus['SHOWALL']:
             subs.haveCht = subStatus['HIDEALL']
             self.btnCht.config(relief='raise')
@@ -476,6 +484,7 @@ class Subtitle():
                     self.textCht.append(subText[1])
             else:
                 # print(sub.text)
+                # translate_text(target = 'zh-tw', text = sub.text)
                 if self.is_contains_chinese(sub.text):
                     self.textCht.append(sub.text)
                     self.textEng.append("")
@@ -490,6 +499,7 @@ class Subtitle():
         self.totpage=ceil(self.datasize/self.pagesize) #總頁數
         self.totfield=self.pagesize*self.totpage #總欄位數  
         #self.tt_play_btn.configure(state=tk.NORMAL, command=self.play)
+        
         
     #def __eng_wipe_in(self, event, index):
     def __wipe_in(self, event, index):    
@@ -699,6 +709,8 @@ class Subtitle():
             self.killFfplay()
             if lang == 'zh':
                 self.ggTts(sentence, lang)
+                # t = threading.Thread(target = self.msTts, args = (sentence, lang))
+                # t.start()
             else:
                 if self.ttsType == 2:
                     t = threading.Thread(target = self.msTts, args = (sentence, lang))
@@ -842,6 +854,25 @@ def createObj():
     toolbar.setLessonFlow(subtitles)
     toolbar.setPageBtnEn()
         
+def add_key(toolbar, menu):    
+    file = tkinter.filedialog.askopenfilename(initialdir = ".", 
+                                              title = "選擇金鑰", 
+                                              filetypes =(("JavaScript Object Notation","*.json"),))
+    if file:
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = file
+        # r"C:\workspace\my_sw\py_workspace\hazel-hall-322014-ddace10ec0ec.json" 
+        print(file)
+        menu.add_command(label = '翻譯字幕', command = lambda:trans_srt(subtitles, toolbar))                                                   
+    
+    
+def trans_srt(subtitles, toolbar):
+    for i in range(subtitles.datasize):
+        # print(subtitles.textEng[i])
+        result = translate_text('zh-tw', subtitles.textEng[i])
+        subtitles.textCht[i] = result["translatedText"]
+        # print(subtitles.textCht[i])
+    toolbar.resetLangBtn(subtitles)
+    subtitles.refresh_page()
     
 def readme():
     tkinter.messagebox.showinfo("About Caption Player", "Caption Player \nV0.6")
@@ -889,6 +920,30 @@ def open_yt():
     #     if os.path.exists(filename):
     #         remove(filename)
     #     tk.messagebox.showinfo("info", "下載完成")
+
+def translate_text(target, text):
+    """Translates text into the target language.
+
+    Target must be an ISO 639-1 language code.
+    See https://g.co/cloud/translate/v2/translate-reference#supported_languages
+    """
+    import six
+    from google.cloud import translate_v2 as translate
+
+    translate_client = translate.Client()
+    # print(dir(translate_client))
+
+    if isinstance(text, six.binary_type):
+        text = text.decode("utf-8")
+
+    # Text can also be a sequence of strings, in which case this method
+    # will return a sequence of results for each text.
+    result = translate_client.translate(text, target_language=target)
+
+    return result
+    # print(u"Text: {}".format(result["input"]))
+    # print(u"Translation: {}".format(result["translatedText"]))
+    # print(u"Detected source language: {}".format(result["detectedSourceLanguage"]))
 
 def is_net_connected(hostname):
   try:
