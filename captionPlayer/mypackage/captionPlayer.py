@@ -105,6 +105,7 @@ def window():
     # add_srt_menu.add_command(label = '開啟連接...', command = open_yt)
     add_srt_menu.add_command(label = '開啟谷哥金鑰...', command = lambda:add_key(toolbar, add_srt_menu))
     # add_srt_menu.add_command(label = '翻譯字幕', command = lambda:trans_srt(subtitles, toolbar))
+    add_srt_menu.add_command(label = '儲存字幕', command = lambda:store_srt(subtitles))
     add_srt_menu.add_command(label = '離開程式', command = close_window)
     readme_menu.add_command(label = '資訊', command = readme)
     filemenu.add_cascade(label = "檔案", menu = add_srt_menu)
@@ -275,7 +276,7 @@ class Toolbar():
 
     def resetLangBtn(self, subtitles):
         subtitles.have2subs = True
-        subtitles.haveCht = subStatus['HIDEALL']
+        subtitles.haveCht = subStatus['SHOWALL']
         self.setLangBtn(subtitles)
         
     def setLangBtn(self, subtitles):
@@ -351,6 +352,7 @@ class Toolbar():
 class Subtitle():
     global frameShow, labelPage, song, toolbar
     def __init__(self, pagesize):
+        self.file = ""
         self.row = 0
         self.start = 0
         self.page = 0
@@ -759,7 +761,7 @@ class Subtitle():
         else:
             song.stop()        
             self.killFfplay()
-            cmd = 'ffplay -ss {} -t {} -af atempo={} -i "{}"  -loglevel quiet -showmode 0 -hide_banner' .format(start, duration, factor, song.getSong())
+            cmd = 'ffplay -ss {} -t {} -af atempo={} -i "{}"  -loglevel quiet -showmode 0 -hide_banner  -nodisp' .format(start, duration, factor, song.getSong())
             proc = subprocess.Popen(cmd, shell=True,
                                stdin=subprocess.PIPE,
                                stdout=subprocess.DEVNULL,
@@ -833,6 +835,7 @@ def add_srt(toolbar):
             f.close()
             subs = srt.open('temp.srt', encoding = "utf-8")
         
+        subtitles.file = f"{file}"
         subtitles.load_srt(subs, songfile)
         song = Song(songfile)
         if os.path.isfile(songfile) == False:
@@ -861,7 +864,7 @@ def add_key(toolbar, menu):
     if file:
         os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = file
         # r"C:\workspace\my_sw\py_workspace\hazel-hall-322014-ddace10ec0ec.json" 
-        print(file)
+        # print(file)
         menu.add_command(label = '翻譯字幕', command = lambda:trans_srt(subtitles, toolbar))                                                   
     
     
@@ -873,6 +876,15 @@ def trans_srt(subtitles, toolbar):
         # print(subtitles.textCht[i])
     toolbar.resetLangBtn(subtitles)
     subtitles.refresh_page()
+    
+def store_srt(subtitles):
+    for i in range(subtitles.datasize):
+        subtitles.subs[i].text = subtitles.subs[i].text + "\n" + subtitles.textCht[i]
+        # print(subtitles.subs[i].text)   
+    if ".ass" in subtitles.file: 
+        subtitles.file = subtitles.file.replace(".ass",".srt")
+    # subtitles.subs.save(r'C:\workspace\my_sw\py_workspace\123.srt', encoding = "utf-8")
+    subtitles.subs.save(subtitles.file, encoding = "utf-8")
     
 def readme():
     tkinter.messagebox.showinfo("About Caption Player", "Caption Player \nV0.6")
