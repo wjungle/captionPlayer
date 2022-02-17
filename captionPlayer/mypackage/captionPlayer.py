@@ -103,7 +103,7 @@ def window():
     #add_srt_menu.add_command(label = '開啟檔案...', command = add_srt)
     add_srt_menu.add_command(label = '開啟字幕...', command = lambda:add_srt(toolbar))
     # add_srt_menu.add_command(label = '開啟連接...', command = open_yt)
-    # os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = r"C:\workspace\my_sw\py_workspace\hazel-hall-322014-ddace10ec0ec.json" 
+    # os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = r"hazel-hall-322014-ddace10ec0ec.json" 
     # add_srt_menu.add_command(label = '翻譯字幕', command = lambda:trans_srt(subtitles, toolbar))
     add_srt_menu.add_command(label = '儲存字幕', command = lambda:store_srt(subtitles))
     add_srt_menu.add_command(label = '離開程式', command = close_window)
@@ -859,6 +859,7 @@ def createObj():
     subtitles.First()
     toolbar.setLangBtn(subtitles)
     toolbar.setComboBoxPage(subtitles)
+    speech_key = ""
     try:
         speech_key
     except NameError:
@@ -904,7 +905,7 @@ def store_srt(subtitles):
     subtitles.subs.save(subtitles.file, encoding = "utf-8")
     
 def readme():
-    tkinter.messagebox.showinfo("About Caption Player", "Caption Player \nV0.6")
+    tkinter.messagebox.showinfo("About Caption Player", "Caption Player \nV0.7")
 
 
 def close_window():
