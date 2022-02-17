@@ -453,7 +453,7 @@ class Subtitle():
                                                                   activefill = 'blue', 
                                                                   anchor = 'w'))
                 self.subCht.append(self.canvas[row-1].create_text(3, 40, text='', 
-                                                                  font=("Calibri",12),
+                                                                  font=("新細明體",12),
                                                                   anchor = 'w'))
                 self.sep.append(ttk.Separator(frameShow, orient = 'horizontal'))      
                 
@@ -859,7 +859,7 @@ def createObj():
     subtitles.First()
     toolbar.setLangBtn(subtitles)
     toolbar.setComboBoxPage(subtitles)
-    speech_key = ""
+    # speech_key = ""
     try:
         speech_key
     except NameError:
@@ -886,8 +886,11 @@ def add_google_key(toolbar, menu):
         os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = file
         menu.add_command(label = '翻譯字幕', command = lambda:trans_srt(subtitles, toolbar))                                                   
     
-    
 def trans_srt(subtitles, toolbar):
+    t = threading.Thread(target = trans_srt_impl, args = (subtitles, toolbar))
+    t.start()  
+    
+def trans_srt_impl(subtitles, toolbar):
     for i in range(subtitles.datasize):
         # print(subtitles.textEng[i])
         result = translate_text('zh-tw', subtitles.textEng[i])
