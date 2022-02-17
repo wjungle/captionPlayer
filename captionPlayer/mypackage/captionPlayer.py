@@ -103,6 +103,7 @@ def window():
     #add_srt_menu.add_command(label = '開啟檔案...', command = add_srt)
     add_srt_menu.add_command(label = '開啟字幕...', command = lambda:add_srt(toolbar))
     # add_srt_menu.add_command(label = '開啟連接...', command = open_yt)
+    # os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = r"C:\workspace\my_sw\py_workspace\hazel-hall-322014-ddace10ec0ec.json" 
     # add_srt_menu.add_command(label = '翻譯字幕', command = lambda:trans_srt(subtitles, toolbar))
     add_srt_menu.add_command(label = '儲存字幕', command = lambda:store_srt(subtitles))
     add_srt_menu.add_command(label = '離開程式', command = close_window)
@@ -882,8 +883,6 @@ def add_google_key(toolbar, menu):
                                               filetypes =(("JavaScript Object Notation","*.json"),))
     if file:
         os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = file
-        # r"C:\workspace\my_sw\py_workspace\hazel-hall-322014-ddace10ec0ec.json" 
-        # print(file)
         menu.add_command(label = '翻譯字幕', command = lambda:trans_srt(subtitles, toolbar))                                                   
     
     
@@ -898,11 +897,10 @@ def trans_srt(subtitles, toolbar):
     
 def store_srt(subtitles):
     for i in range(subtitles.datasize):
-        subtitles.subs[i].text = subtitles.subs[i].text + "\n" + subtitles.textCht[i]
+        subtitles.subs[i].text = subtitles.textEng[i] + "\n" + subtitles.textCht[i]
         # print(subtitles.subs[i].text)   
     if ".ass" in subtitles.file: 
         subtitles.file = subtitles.file.replace(".ass",".srt")
-    # subtitles.subs.save(r'C:\workspace\my_sw\py_workspace\123.srt', encoding = "utf-8")
     subtitles.subs.save(subtitles.file, encoding = "utf-8")
     
 def readme():
