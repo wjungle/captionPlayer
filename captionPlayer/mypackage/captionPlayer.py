@@ -27,7 +27,6 @@ import socket
 import subprocess
 
 global song
-speech_key, service_region = "", "eastasia"
 
 songStatus = {
     'INIT' : 0,
@@ -99,21 +98,25 @@ def window():
         
     # Add Add srt menu
     add_srt_menu = tk.Menu(filemenu, tearoff = 0)
+    add_key_menu = tk.Menu(filemenu, tearoff = 0)
     readme_menu = tk.Menu(filemenu, tearoff = 0)
     #add_srt_menu.add_command(label = '開啟檔案...', command = add_srt)
     add_srt_menu.add_command(label = '開啟字幕...', command = lambda:add_srt(toolbar))
     # add_srt_menu.add_command(label = '開啟連接...', command = open_yt)
-    add_srt_menu.add_command(label = '開啟谷哥金鑰...', command = lambda:add_key(toolbar, add_srt_menu))
     # add_srt_menu.add_command(label = '翻譯字幕', command = lambda:trans_srt(subtitles, toolbar))
     add_srt_menu.add_command(label = '儲存字幕', command = lambda:store_srt(subtitles))
     add_srt_menu.add_command(label = '離開程式', command = close_window)
+    add_key_menu.add_command(label = '輸入微軟金鑰...', command = add_ms_key)
+    add_key_menu.add_command(label = '開啟谷哥金鑰...', command = lambda:add_google_key(toolbar, add_srt_menu))
     readme_menu.add_command(label = '資訊', command = readme)
     filemenu.add_cascade(label = "檔案", menu = add_srt_menu)
+    filemenu.add_cascade(label = "金鑰", menu = add_key_menu)
     filemenu.add_cascade(label = "說明", menu = readme_menu)        
     
     win.mainloop()
     
 class Toolbar():
+    global speech_key
     def __init__(self, frameToolbar):
         self.btnFirst = 0
         self.btnPrev = 0
@@ -187,12 +190,13 @@ class Toolbar():
         self.btnPrev.config(command = subtitles.Prev)
         self.btnNext.config(command = subtitles.Next)
         self.btnBottom.config(command = subtitles.Bottom)
+        self.subtitles = subtitles
         
     def setSongCmd(self, song):
         self.btnGPlay.config(command = lambda:self.play(song), state=tk.NORMAL)
         
     def clrSongCmd(self):
-            self.btnGPlay.config(state=tk.DISABLED)
+        self.btnGPlay.config(state=tk.DISABLED)
         
     def setPageBtnEn(self):
         self.btnFirst.config(state=tk.NORMAL)
@@ -214,13 +218,15 @@ class Toolbar():
         self.cbb["values"] = self.pageList
         self.cbb.bind("<<ComboboxSelected>>", subtitles.Assign)
         
-    def setComboBoxTts(self, subtitles):
+    def setComboBoxTts(self, subtitles, ms):
         self.ttsList.clear()
         self.ttsList = ['谷哥'] #, '微軟'
         if subtitles.haveMP3 == 1:
             self.ttsList.insert(0, 'mp3')
         else:
             subtitles.ttsType = 1
+        if ms == 1:
+            self.ttsList.insert(2, '微軟')
         self.cbbTts["values"] = self.ttsList    
         self.cbbTts.bind("<<ComboboxSelected>>", subtitles.SelTts)
         
@@ -315,6 +321,7 @@ class Toolbar():
 
     def play(self, song):
         song.cancelTimer()
+        self.subtitles.killFfplay()
         if (self.btnGPlay['text'] == "▶"):
             if pyg.mixer.music.get_busy() == True:
                 pyg.mixer.music.play(loops=0, start = 0)
@@ -350,7 +357,7 @@ class Toolbar():
             
 
 class Subtitle():
-    global frameShow, labelPage, song, toolbar
+    global frameShow, labelPage, song, toolbar, speech_key
     def __init__(self, pagesize):
         self.file = ""
         self.row = 0
@@ -670,10 +677,6 @@ class Subtitle():
         # self.pagesize =  int(event.widget.get())
         # print(self.pagesize)
         # window()
-     
-    # Play and pause selected srt's mp3
-    def play(self):
-        pass
     
     # set AB play button
     def setAB(self, btn, start, duration):
@@ -710,9 +713,11 @@ class Subtitle():
             song.cancelTimer()
             self.killFfplay()
             if lang == 'zh':
-                self.ggTts(sentence, lang)
-                # t = threading.Thread(target = self.msTts, args = (sentence, lang))
-                # t.start()
+                if self.ttsType == 2:
+                    t = threading.Thread(target = self.msTts, args = (sentence, lang))
+                    t.start()
+                else:
+                    self.ggTts(sentence, lang)
             else:
                 if self.ttsType == 2:
                     t = threading.Thread(target = self.msTts, args = (sentence, lang))
@@ -733,7 +738,7 @@ class Subtitle():
             lang = 'en-US'
         elif lang == 'zh':
             lang = 'zh-TW'
-        speech_config = speechsdk.SpeechConfig(subscription=speech_key, region=service_region)
+        speech_config = speechsdk.SpeechConfig(subscription=speech_key, region='eastasia')
         speech_config.speech_synthesis_language = lang
         speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config = speech_config)
         result = speech_synthesizer.speak_text_async(sentence).get()
@@ -761,16 +766,17 @@ class Subtitle():
         else:
             song.stop()        
             self.killFfplay()
-            cmd = 'ffplay -ss {} -t {} -af atempo={} -i "{}"  -loglevel quiet -showmode 0 -hide_banner  -nodisp' .format(start, duration, factor, song.getSong())
-            proc = subprocess.Popen(cmd, shell=True,
+            cmd = 'ffplay -ss {} -t {} -af atempo={} -i "{}" -autoexit -loglevel quiet -showmode 0 -hide_banner  -nodisp' .format(start, duration, factor, song.getSong())
+            subprocess.run(cmd, shell=True, #proc = Popen
                                stdin=subprocess.PIPE,
                                stdout=subprocess.DEVNULL,
                                stderr=subprocess.DEVNULL) 
-            kill_proc = lambda p: subprocess.call(['taskkill', '/F', '/T', '/PID',  str(p.pid)], startupinfo=self.si)
-            timer = threading.Timer(duration/factor, kill_proc, [proc])
-            timer.start()
+            # kill_proc = lambda p: subprocess.call(['taskkill', '/F', '/T', '/PID',  str(p.pid)], startupinfo=self.si)
+            # timer = threading.Timer(duration/factor, kill_proc, [proc])
+            # timer.start()
 
     def killFfplay(self):
+        # subprocess.call(['tasklist', '|find', '/i,' 'ffplay.exe'])
         subprocess.call(['taskkill', '/F', '/im', 'ffplay.exe'], startupinfo=self.si)
 
 
@@ -848,16 +854,29 @@ def add_srt(toolbar):
         
     
 def createObj():
-    global subtitles
+    global subtitles, speech_key
     subtitles.First()
     toolbar.setLangBtn(subtitles)
     toolbar.setComboBoxPage(subtitles)
-    toolbar.setComboBoxTts(subtitles)
+    try:
+        speech_key
+    except NameError:
+        toolbar.setComboBoxTts(subtitles, 0)
+    else:
+        if speech_key != "":
+            toolbar.setComboBoxTts(subtitles, 1)
     # toolbar.setComboBoxRow(subtitles)
     toolbar.setLessonFlow(subtitles)
     toolbar.setPageBtnEn()
         
-def add_key(toolbar, menu):    
+def add_ms_key():
+    global speech_key
+    speech_key = tk.simpledialog.askstring(title = 'ms key', prompt='請輸入金鑰：\t\t\t\t')
+    if speech_key != "":
+        toolbar.setComboBoxTts(subtitles, 1)
+     
+    
+def add_google_key(toolbar, menu):    
     file = tkinter.filedialog.askopenfilename(initialdir = ".", 
                                               title = "選擇金鑰", 
                                               filetypes =(("JavaScript Object Notation","*.json"),))
