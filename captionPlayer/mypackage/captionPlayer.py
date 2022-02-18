@@ -42,7 +42,7 @@ subStatus = {
 }
 
 def window():
-    global win, frameShow, subtitles, labelPage, toolbar
+    global win, frameShow, subtitles, labelPage, toolbar, transPb
     pageSize = 6
     win = tk.Tk()
     if pageSize == 6:
@@ -83,6 +83,11 @@ def window():
     subtitles = Subtitle(pageSize)
     # status bar
     labelPage = tk.Label(frameStatusbar, text="")
+    # progress bar
+    transPb = ttk.Progressbar(frameStatusbar, 
+                             length=100, 
+                             mode="determinate", 
+                             orient="horizontal")
     
     toolbar.setSubsCmd(subtitles)
     #toolbar.setPageBtnEn()
@@ -90,7 +95,9 @@ def window():
     frameToolbar.pack(side = "top", fill = "x")  
     frameShow.pack()
     frameStatusbar.pack(fill="x", side="bottom", ipady=2)
-    labelPage.pack(anchor="w")
+    labelPage.pack(side="left")
+    transPb.pack(side="right")
+    transPb["value"] = 0
     
     # Create Menu
     filemenu = tk.Menu(win)
@@ -870,6 +877,7 @@ def createObj():
     # toolbar.setComboBoxRow(subtitles)
     toolbar.setLessonFlow(subtitles)
     toolbar.setPageBtnEn()
+    transPb["value"] = 0
         
 def add_ms_key():
     global speech_key
@@ -891,11 +899,13 @@ def trans_srt(subtitles, toolbar):
     t.start()  
     
 def trans_srt_impl(subtitles, toolbar):
+    transPb["maximum"] = subtitles.datasize
     for i in range(subtitles.datasize):
         # print(subtitles.textEng[i])
         result = translate_text('zh-tw', subtitles.textEng[i])
         subtitles.textCht[i] = result["translatedText"]
         # print(subtitles.textCht[i])
+        transPb["value"] = i
     toolbar.resetLangBtn(subtitles)
     subtitles.refresh_page()
     
