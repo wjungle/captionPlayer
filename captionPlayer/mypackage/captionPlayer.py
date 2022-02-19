@@ -544,57 +544,56 @@ class Subtitle():
         self.numSentPage = 0
         # print("refresh_page %d" % self.pagesize)
         start = self.page * self.pagesize
-        for i in range(0, self.totfield):
-            if i >= start and i < start + self.pagesize:
-                #print("i=%d" % i)
-                if i < self.datasize:
-                    self.index[i%self.pagesize].config(text = self.subs[i].index)
-                    self.duration[i%self.pagesize].config(
-                        text = self.__calc_seconds(self.subs[i].duration.hours,
-                                                   self.subs[i].duration.minutes,
-                                                   self.subs[i].duration.seconds,
-                                                   self.subs[i].duration.milliseconds))
-                    
-                    # english
-                    if self.haveEng == subStatus['SHOWALL']:
-                        self.canvas[i%self.pagesize].itemconfig(self.subEng[i%self.pagesize], text = self.textEng[i])
-                    elif self.haveEng == subStatus['HIDEALL']:
-                        self.canvas[i%self.pagesize].itemconfig(self.subEng[i%self.pagesize], text = "")
-                    elif self.haveEng ==  subStatus['SHOWAWORD']:
-                        self.canvas[i%self.pagesize].itemconfig(self.subEng[i%self.pagesize], text = self.textEng[i].split(' ')[0])
-                        
-                    # chinese    
-                    if self.haveCht == subStatus['SHOWALL']:
-                        self.canvas[i%self.pagesize].itemconfig(self.subCht[i%self.pagesize], text = self.textCht[i])
-                    elif self.haveCht == subStatus['HIDEALL']:
-                        self.canvas[i%self.pagesize].itemconfig(self.subCht[i%self.pagesize], text = "")
-                        
-                    # bind
-                    self.canvas[i%self.pagesize].bind("<Button-1>", lambda event, arg=i: self.__wipe_in(event, arg))
-                    # self.canvas[i%6].tag_bind(self.subEng[i%6], "<Button-1>", 
-                    #                           lambda event, 
-                    #                           arg=i: self.__eng_wipe_in(event, arg))
-                    # self.canvas[i%6].tag_bind(self.subCht[i%6], "<Button-1>", 
-                    #                           lambda event, 
-                    #                           arg=i: self.__cht_wipe_in(event, arg))
-                    
-                    self.install_btn(i)
-                    self.numSentPage+=1
-                    
-                   # chinese sentence button
-                    if self.have2subs:
-                        if is_net_connected("www.google.com"):
-                            self.setTts(self.play_btnC[i%self.pagesize], self.textCht[i], 'zh')
-                    
-                else:
-                    self.index[i%self.pagesize].config(text = "")
-                    self.duration[i%self.pagesize].config(text = "")
+        for i in range(start, start + self.pagesize):
+            #print("i=%d" % i)
+            if i < self.datasize:
+                self.index[i%self.pagesize].config(text = self.subs[i].index)
+                self.duration[i%self.pagesize].config(
+                    text = self.__calc_seconds(self.subs[i].duration.hours,
+                                               self.subs[i].duration.minutes,
+                                               self.subs[i].duration.seconds,
+                                               self.subs[i].duration.milliseconds))
+                
+                # english
+                if self.haveEng == subStatus['SHOWALL']:
+                    self.canvas[i%self.pagesize].itemconfig(self.subEng[i%self.pagesize], text = self.textEng[i])
+                elif self.haveEng == subStatus['HIDEALL']:
                     self.canvas[i%self.pagesize].itemconfig(self.subEng[i%self.pagesize], text = "")
+                elif self.haveEng ==  subStatus['SHOWAWORD']:
+                    self.canvas[i%self.pagesize].itemconfig(self.subEng[i%self.pagesize], text = self.textEng[i].split(' ')[0])
+                    
+                # chinese    
+                if self.haveCht == subStatus['SHOWALL']:
+                    self.canvas[i%self.pagesize].itemconfig(self.subCht[i%self.pagesize], text = self.textCht[i])
+                elif self.haveCht == subStatus['HIDEALL']:
                     self.canvas[i%self.pagesize].itemconfig(self.subCht[i%self.pagesize], text = "")
-                    self.canvas[i%self.pagesize].unbind("<Button-1>")
-                    self.play_btn[i%self.pagesize].configure(state=tk.DISABLED)
-                    self.play_btnC[i%self.pagesize].configure(state=tk.DISABLED)
-                row+=2
+                    
+                # bind
+                self.canvas[i%self.pagesize].bind("<Button-1>", lambda event, arg=i: self.__wipe_in(event, arg))
+                # self.canvas[i%6].tag_bind(self.subEng[i%6], "<Button-1>", 
+                #                           lambda event, 
+                #                           arg=i: self.__eng_wipe_in(event, arg))
+                # self.canvas[i%6].tag_bind(self.subCht[i%6], "<Button-1>", 
+                #                           lambda event, 
+                #                           arg=i: self.__cht_wipe_in(event, arg))
+                
+                self.install_btn(i)
+                self.numSentPage+=1
+                
+               # chinese sentence button
+                if self.have2subs:
+                    if is_net_connected("www.google.com"):
+                        self.setTts(self.play_btnC[i%self.pagesize], self.textCht[i], 'zh')
+                
+            else:
+                self.index[i%self.pagesize].config(text = "")
+                self.duration[i%self.pagesize].config(text = "")
+                self.canvas[i%self.pagesize].itemconfig(self.subEng[i%self.pagesize], text = "")
+                self.canvas[i%self.pagesize].itemconfig(self.subCht[i%self.pagesize], text = "")
+                self.canvas[i%self.pagesize].unbind("<Button-1>")
+                self.play_btn[i%self.pagesize].configure(state=tk.DISABLED)
+                self.play_btnC[i%self.pagesize].configure(state=tk.DISABLED)
+            row+=2
                 
         # print("%d, %d" % (start, self.numSentPage))        
         self.intall_pageBtn(start, self.numSentPage)
